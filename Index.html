@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Free SAT Practice</title>
+</head>
+<body>
+
+  <h1>Free SAT Practice Questions</h1>
+  <p>Click the button to get a practice question.</p>
+
+  <button onclick="showQuestion()">Get Question</button>
+
+  <p id="question"></p>
+  <p id="answer"></p>
+
+  <script>
+    function showQuestion() {
+      document.getElementById("question").innerText =
+        "If 3x + 5 = 20, what is the value of x?\nA) 3\nB) 5\nC) 7\nD) 10";
+
+      document.getElementById("answer").innerText =
+        "Correct Answer: B) 5\nExplanation: Subtract 5 from both sides, then divide by 3.";
+    }
+  </script>
+
+  <hr>
+  <small>
+    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
+  </small>
+
+</body>
+</html>

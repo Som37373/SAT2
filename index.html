@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Free SAT Math Practice</title>
+  <title>Free SAT Practice (Math + Reading/Writing)</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 22px; line-height: 1.5; }
+    body { font-family: Arial, sans-serif; max-width: 1020px; margin: 0 auto; padding: 22px; line-height: 1.5; }
     h1 { margin: 0 0 6px; }
     .subtle { color:#555; margin: 0 0 14px; }
     .card { border: 1px solid #ddd; border-radius: 14px; padding: 18px; margin-top: 14px; }
@@ -14,7 +14,19 @@
     button { cursor:pointer; }
     button:hover { background:#f7f7f7; }
     button:disabled { cursor:not-allowed; opacity:.6; }
-    .question { margin: 14px 0 0; font-size:18px; white-space:pre-wrap; }
+
+    .passage {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      background: #fafafa;
+      white-space: pre-wrap;
+      display:none;
+    }
+    .metaLine { margin-top: 10px; display:flex; flex-wrap:wrap; gap:10px; }
+    .pill { display:inline-block; padding:4px 10px; border:1px solid #ddd; border-radius:999px; background:#fff; font-size:13px; color:#444; }
+    .question { margin: 12px 0 0; font-size:18px; white-space:pre-wrap; }
     .choices { margin-top: 12px; display:grid; grid-template-columns:1fr; gap:10px; }
     .choiceBtn { text-align:left; width:100%; }
     .result { margin-top: 12px; padding: 12px; border-radius: 10px; border:1px solid #ddd; background:#fafafa; display:none; white-space:pre-wrap; }
@@ -22,18 +34,20 @@
     .incorrect { border-color:#c62828; background:#fdeeee; }
     .scoreBox { margin-top: 10px; border:1px solid #eee; border-radius:10px; padding:12px; background:#fbfbfb; }
     .scoreLine { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .pill { display:inline-block; padding:4px 10px; border:1px solid #ddd; border-radius:999px; background:#fff; font-size:13px; color:#444; }
     .footer { margin-top: 26px; font-size: 12px; color:#666; border-top:1px solid #eee; padding-top:12px; }
   </style>
 </head>
 <body>
-  <h1>Free SAT Math Practice</h1>
-  <p class="subtle">Original questions. Use filters + Random to get questions on demand.</p>
+  <h1>Free SAT Practice</h1>
+  <p class="subtle">Original questions. Filter by domain/topic/difficulty and hit Random for questions on demand.</p>
 
   <div class="card">
     <div class="row">
-      <label><strong>Section:</strong></label>
-      <select id="sectionSelect"></select>
+      <label><strong>Domain:</strong></label>
+      <select id="domainSelect"></select>
+
+      <label><strong>Topic:</strong></label>
+      <select id="topicSelect"></select>
 
       <label><strong>Difficulty:</strong></label>
       <select id="difficultySelect"></select>
@@ -47,17 +61,19 @@
       <div class="scoreLine">
         <div><strong>Score:</strong> <span id="scoreText">0 / 0</span></div>
         <div><strong>Accuracy:</strong> <span id="accuracyText">0%</span></div>
-        <div><strong>Bank size:</strong> <span id="bankSizeText">0</span></div>
+        <div><strong>Total bank:</strong> <span id="bankSizeText">0</span></div>
       </div>
       <div class="scoreLine" style="margin-top:6px;">
         <div><strong>Asked (this session):</strong> <span id="askedText">0</span></div>
-        <div>
-          <span class="pill" id="currentSectionPill">Section: —</span>
+        <div class="metaLine">
+          <span class="pill" id="currentDomainPill">Domain: —</span>
+          <span class="pill" id="currentTopicPill">Topic: —</span>
           <span class="pill" id="currentDifficultyPill">Difficulty: —</span>
         </div>
       </div>
     </div>
 
+    <div id="passage" class="passage"></div>
     <p class="question" id="questionText"></p>
     <div class="choices" id="choices"></div>
     <div class="result" id="result"></div>
@@ -79,6 +95,10 @@ function shuffle(arr) {
   }
   return arr;
 }
+function percent(correct, attempts){
+  if (attempts === 0) return "0%";
+  return Math.round((correct/attempts)*100) + "%";
+}
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
 function formatFrac(n,d){
   if (d < 0) { n = -n; d = -d; }
@@ -86,11 +106,7 @@ function formatFrac(n,d){
   if (d === 1) return String(n);
   return `${n}/${d}`;
 }
-function percent(correct, attempts){
-  if (attempts === 0) return "0%";
-  return Math.round((correct/attempts)*100) + "%";
-}
-function makeMCQ({section, difficulty, question, correctValue, distractors, explanation}) {
+function makeMCQ({domain, topic, difficulty, passage="", question, correctValue, distractors, explanation}) {
   const all = [String(correctValue), ...distractors.map(String)];
   const unique = [];
   for (const v of all) if (!unique.includes(v)) unique.push(v);
@@ -100,515 +116,802 @@ function makeMCQ({section, difficulty, question, correctValue, distractors, expl
   const letters = ["A","B","C","D"];
   const choiceObjs = choices.map((t,i)=>({ key: letters[i], text: t }));
   const answerKey = letters[choices.indexOf(String(correctValue))];
-  return { section, difficulty, question, choices: choiceObjs, answer: answerKey, explanation };
+  return {
+    id: `${domain}||${topic}||${difficulty}||${question}||${passage}`.slice(0, 400),
+    domain, topic, difficulty, passage,
+    question,
+    choices: choiceObjs,
+    answer: answerKey,
+    explanation
+  };
 }
 
 /* =========================
-   Sections / Difficulty
+   Filters
 ========================= */
-const SECTIONS = ["All", "Algebra", "PSDA", "Passport to Advanced Math", "Additional Topics"];
+const DOMAINS = ["All", "Math", "Reading/Writing"];
 const DIFFICULTIES = ["All", "Easy", "Medium", "Hard"];
 
+// Math topics (4 sections)
+const MATH_TOPICS = ["All",
+  "Algebra",
+  "Math (Problem Solving & Data Analysis)",
+  "Math (Passport to Advanced Math)",
+  "Math (Additional Topics)"
+];
+
+// Reading/Writing topics (exactly as you listed)
+const RW_TOPICS = ["All",
+  "Information and Ideas Questions",
+  "Command of Evidence (Textual)",
+  "Command of Evidence (Quantitative)",
+  "Central Ideas and Details",
+  "Inferences",
+  "Craft and Structure Questions",
+  "Words in Context",
+  "Text Structure and Purpose",
+  "Cross-Text Connections",
+  "Expression of Ideas Questions",
+  "Transitions",
+  "Rhetorical Synthesis",
+  "Standard English Conventions Questions",
+  "Boundaries",
+  "Form, Structure, and Sense"
+];
+
 /* =========================
-   Bank
+   Question Bank
 ========================= */
 const bank = [];
 
 /* -------------------------
-   50 Easy/Medium (kept)
+   Math bank (~100 with hard mode support)
 ------------------------- */
-function addEasyMedium50() {
-  // 12 Algebra
-  for (let i=0;i<12;i++){
-    const a = randInt(2, 9);
-    const x = randInt(-6, 10);
-    const b = randInt(-15, 15);
-    const c = a*x + b;
-    bank.push(makeMCQ({
-      section:"Algebra",
-      difficulty: (i<6 ? "Easy" : "Medium"),
-      question:`Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`,
-      correctValue:x,
-      distractors:[x+2, x-3, c],
-      explanation:`Subtract ${b} from both sides: ${a}x = ${c-b}. Divide by ${a}: x = ${x}.`
-    }));
-  }
-
-  // 12 PSDA
-  for (let i=0;i<12;i++){
-    if (i%3===0){
-      const price = randInt(30, 180);
-      const pct = [10,15,20,25,30][randInt(0,4)];
-      const disc = Math.round(price*pct/100);
-      const sale = price-disc;
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`A ${pct}% discount is applied to a $${price} item. What is the sale price?`,
-        correctValue:sale,
-        distractors:[disc, price+disc, price - Math.round(disc/2)],
-        explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale = ${price} − ${disc} = ${sale}.`
-      }));
-    } else if (i%3===1){
-      const red = randInt(3,9), blue = randInt(3,9);
-      const total = red+blue;
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`A bag has ${red} red and ${blue} blue marbles. What is the probability of choosing a blue marble?`,
-        correctValue:formatFrac(blue,total),
-        distractors:[formatFrac(red,total), formatFrac(blue,red), formatFrac(1,total)],
-        explanation:`Probability = favorable/total = ${blue}/${total} = ${formatFrac(blue,total)}.`
-      }));
-    } else {
-      const miles = randInt(80, 240);
-      const hours = randInt(2, 6);
-      const speed = miles/hours;
-      if (!Number.isInteger(speed)) { i--; continue; }
-      const h2 = randInt(4, 8);
-      const d2 = speed*h2;
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${h2} hours?`,
-        correctValue:d2,
-        distractors:[speed, d2+speed, miles+d2],
-        explanation:`Speed = ${miles}/${hours} = ${speed} mph. Distance = ${speed}×${h2} = ${d2}.`
-      }));
-    }
-  }
-
-  // 13 Advanced
-  for (let i=0;i<13;i++){
-    const r1 = randInt(-7,7);
-    const r2 = randInt(-7,7);
-    if (r1===0 && r2===0) { i--; continue; }
-    const b = -(r1+r2), c = r1*r2;
-    bank.push(makeMCQ({
-      section:"Passport to Advanced Math",
-      difficulty:(i<6?"Easy":"Medium"),
-      question:`Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`,
-      correctValue:`x = ${r1} or x = ${r2}`,
-      distractors:[`x = ${-r1} or x = ${-r2}`, `x = ${r1+r2}`, `x = ${c}`],
-      explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
-    }));
-  }
-
-  // 13 Additional
-  for (let i=0;i<13;i++){
-    if (i%4===0){
-      const L=randInt(4,22), W=randInt(4,22);
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`What is the area of a rectangle with length ${L} and width ${W}?`,
-        correctValue:L*W,
-        distractors:[L+W, 2*(L+W), 2*L*W],
-        explanation:`Area = L×W = ${L}×${W} = ${L*W}.`
-      }));
-    } else if (i%4===1){
-      const s=randInt(2,10);
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`What is the volume of a cube with side length ${s}?`,
-        correctValue:s**3,
-        distractors:[s**2, 6*s**2, 3*s],
-        explanation:`Volume = s³ = ${s}³ = ${s**3}.`
-      }));
-    } else if (i%4===2){
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`Simplify: i^4`,
-        correctValue:"1",
-        distractors:["-1","i","-i"],
-        explanation:`i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1.`
-      }));
-    } else {
-      const angle=[30,45,60][randInt(0,2)];
-      const func=["sin","cos"][randInt(0,1)];
-      let correct;
-      if (func==="sin" && angle===30) correct="1/2";
-      if (func==="sin" && angle===45) correct="√2/2";
-      if (func==="sin" && angle===60) correct="√3/2";
-      if (func==="cos" && angle===30) correct="√3/2";
-      if (func==="cos" && angle===45) correct="√2/2";
-      if (func==="cos" && angle===60) correct="1/2";
-      const distractors=["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
-      shuffle(distractors);
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:(i<6?"Easy":"Medium"),
-        question:`What is ${func}(${angle}°)?`,
-        correctValue:correct,
-        distractors:distractors.slice(0,3),
-        explanation:`Special-angle value: ${func}(${angle}°) = ${correct}.`
-      }));
-    }
-  }
-}
-
-/* -------------------------
-   50 HARD questions (new)
-   (harder multi-step, algebraic structure, data reasoning)
-------------------------- */
-function addHard50() {
-  // 13 HARD Algebra
-  for (let i=0;i<13;i++){
-    const type = i % 5;
-
-    if (type === 0) {
-      // absolute value equation with two solutions
-      const a = randInt(2,6);
-      const h = randInt(-6,6);
-      const k = randInt(3,12);
-      // |a(x-h)| = k  => x = h ± k/a (ensure divisible)
-      if (k % a !== 0) { i--; continue; }
-      const d = k/a;
-      const sol1 = h + d, sol2 = h - d;
-      bank.push(makeMCQ({
-        section:"Algebra",
-        difficulty:"Hard",
-        question:`Solve for x:\n|${a}(x ${h>=0? "-":"+"} ${Math.abs(h)})| = ${k}`,
-        correctValue:`x = ${sol1} or x = ${sol2}`,
-        distractors:[`x = ${h} ± ${k}`, `x = ${k} or x = ${-k}`, `x = ${h}`],
-        explanation:`|${a}(x−${h})|=${k} ⇒ ${a}|x−${h}|=${k} ⇒ |x−${h}|=${d} ⇒ x=${h}±${d}.`
-      }));
-    } else if (type === 1) {
-      // compound fraction
-      const x = randInt(2,9);
-      const a = randInt(1,6);
-      const b = randInt(1,6);
-      // (a/x) + (b/x) = (a+b)/x
-      bank.push(makeMCQ({
-        section:"Algebra",
-        difficulty:"Hard",
-        question:`If x ≠ 0, simplify:\n(${a}/x) + (${b}/x)`,
-        correctValue:`${a+b}/x`,
-        distractors:[`${a+b}x`, `${a*b}/x`, `${a+b}`],
-        explanation:`Common denominator x: (${a}+${b})/x = ${a+b}/x.`
-      }));
-    } else if (type === 2) {
-      // linear inequality with flipping sign
-      const a = randInt(2,6);
-      const b = randInt(3,12);
-      const c = randInt(-10,10);
-      // -a(x + c) > b  => x < (-b/a) - c (ensure integer by making b divisible by a)
-      const A = -a;
-      if (b % a !== 0) { i--; continue; }
-      const rhs = -b/a - c;
-      bank.push(makeMCQ({
-        section:"Algebra",
-        difficulty:"Hard",
-        question:`Solve the inequality:\n${A}(x ${c>=0?"+":"-"} ${Math.abs(c)}) > ${b}\nChoose the correct solution set.`,
-        correctValue:`x < ${rhs}`,
-        distractors:[`x > ${rhs}`, `x ≤ ${rhs}`, `x ≥ ${rhs}`],
-        explanation:`Divide by negative ${A} (flip sign): x ${c>=0?"+":"-"} ${Math.abs(c)} < ${-b/a}. Then isolate x: x < ${rhs}.`
-      }));
-    } else if (type === 3) {
-      // function composition
-      const m = randInt(2,6);
-      const n = randInt(-5,5);
-      const x = randInt(-3,6);
-      // f(x)=mx+n, g(x)=x-2. Find f(g(x))
-      bank.push(makeMCQ({
-        section:"Algebra",
-        difficulty:"Hard",
-        question:`Let f(x) = ${m}x ${n>=0?"+":"-"} ${Math.abs(n)} and g(x) = x - 2.\nWhat is f(g(x))?`,
-        correctValue:`${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}`,
-        distractors:[`${m}x ${n>=0?"+":"-"} ${Math.abs(n)}`, `${m}x ${(-2+n)>=0?"+":"-"} ${Math.abs(-2+n)}`, `${m}(x-2) ${n>=0?"+":"-"} ${Math.abs(n)}`],
-        explanation:`g(x)=x−2 ⇒ f(g(x)) = ${m}(x−2) ${n>=0?"+":"-"} ${Math.abs(n)} = ${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}.`
-      }));
-    } else {
-      // solve for parameter
-      const a = randInt(2,6);
-      const x = randInt(-4,6);
-      const b = randInt(-10,10);
+function buildMathBank() {
+  const out = [];
+  // 50 easier/medium + 50 hard
+  function addEasyMedium50() {
+    // Algebra (12)
+    for (let i=0;i<12;i++){
+      const a = randInt(2, 9);
+      const x = randInt(-6, 10);
+      const b = randInt(-15, 15);
       const c = a*x + b;
-      // ax + b = c, solve for a
-      bank.push(makeMCQ({
-        section:"Algebra",
-        difficulty:"Hard",
-        question:`For what value of a does the equation hold?\nax ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}\nwhen x = ${x}?`,
-        correctValue:String(a),
-        distractors:[String(x), String(c), String(a+2)],
-        explanation:`Substitute x=${x}: a(${x}) ${b>=0?"+":"-"} ${Math.abs(b)} = ${c} ⇒ a(${x}) = ${c-b} ⇒ a = ${(c-b)}/${x} = ${a}.`
+      out.push(makeMCQ({
+        domain:"Math",
+        topic:"Algebra",
+        difficulty:(i<6 ? "Easy" : "Medium"),
+        question:`Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`,
+        correctValue:x,
+        distractors:[x+2, x-3, c],
+        explanation:`Subtract ${b} from both sides: ${a}x = ${c-b}. Divide by ${a}: x = ${x}.`
       }));
+    }
+
+    // PSDA (12)
+    for (let i=0;i<12;i++){
+      if (i%3===0){
+        const price = randInt(30, 180);
+        const pct = [10,15,20,25,30][randInt(0,4)];
+        const disc = Math.round(price*pct/100);
+        const sale = price-disc;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`A ${pct}% discount is applied to a $${price} item. What is the sale price?`,
+          correctValue:sale,
+          distractors:[disc, price+disc, price - Math.round(disc/2)],
+          explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale = ${price} − ${disc} = ${sale}.`
+        }));
+      } else if (i%3===1){
+        const red = randInt(3,9), blue = randInt(3,9);
+        const total = red+blue;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`A bag has ${red} red and ${blue} blue marbles. What is the probability of choosing a blue marble?`,
+          correctValue:formatFrac(blue,total),
+          distractors:[formatFrac(red,total), formatFrac(blue,red), formatFrac(1,total)],
+          explanation:`Probability = favorable/total = ${blue}/${total} = ${formatFrac(blue,total)}.`
+        }));
+      } else {
+        const miles = randInt(80, 240);
+        const hours = randInt(2, 6);
+        const speed = miles/hours;
+        if (!Number.isInteger(speed)) { i--; continue; }
+        const h2 = randInt(4, 8);
+        const d2 = speed*h2;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${h2} hours?`,
+          correctValue:d2,
+          distractors:[speed, d2+speed, miles+d2],
+          explanation:`Speed = ${miles}/${hours} = ${speed} mph. Distance = ${speed}×${h2} = ${d2}.`
+        }));
+      }
+    }
+
+    // Advanced (13)
+    for (let i=0;i<13;i++){
+      const r1 = randInt(-7,7);
+      const r2 = randInt(-7,7);
+      if (r1===0 && r2===0) { i--; continue; }
+      const b = -(r1+r2), c = r1*r2;
+      out.push(makeMCQ({
+        domain:"Math",
+        topic:"Math (Passport to Advanced Math)",
+        difficulty:(i<6 ? "Easy" : "Medium"),
+        question:`Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`,
+        correctValue:`x = ${r1} or x = ${r2}`,
+        distractors:[`x = ${-r1} or x = ${-r2}`, `x = ${r1+r2}`, `x = ${c}`],
+        explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
+      }));
+    }
+
+    // Additional (13)
+    for (let i=0;i<13;i++){
+      if (i%4===0){
+        const L=randInt(4,22), W=randInt(4,22);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`What is the area of a rectangle with length ${L} and width ${W}?`,
+          correctValue:L*W,
+          distractors:[L+W, 2*(L+W), 2*L*W],
+          explanation:`Area = L×W = ${L}×${W} = ${L*W}.`
+        }));
+      } else if (i%4===1){
+        const s=randInt(2,10);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`What is the volume of a cube with side length ${s}?`,
+          correctValue:s**3,
+          distractors:[s**2, 6*s**2, 3*s],
+          explanation:`Volume = s³ = ${s}³ = ${s**3}.`
+        }));
+      } else if (i%4===2){
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`Simplify: i^4`,
+          correctValue:"1",
+          distractors:["-1","i","-i"],
+          explanation:`i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1.`
+        }));
+      } else {
+        const angle=[30,45,60][randInt(0,2)];
+        const func=["sin","cos"][randInt(0,1)];
+        let correct;
+        if (func==="sin" && angle===30) correct="1/2";
+        if (func==="sin" && angle===45) correct="√2/2";
+        if (func==="sin" && angle===60) correct="√3/2";
+        if (func==="cos" && angle===30) correct="√3/2";
+        if (func==="cos" && angle===45) correct="√2/2";
+        if (func==="cos" && angle===60) correct="1/2";
+        const distractors=["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
+        shuffle(distractors);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:(i<6 ? "Easy" : "Medium"),
+          question:`What is ${func}(${angle}°)?`,
+          correctValue:correct,
+          distractors:distractors.slice(0,3),
+          explanation:`Special-angle value: ${func}(${angle}°) = ${correct}.`
+        }));
+      }
     }
   }
 
-  // 12 HARD PSDA
-  for (let i=0;i<12;i++){
-    const type = i % 4;
-    if (type === 0) {
-      // multi-step percent change then percent of new
-      const base = randInt(80, 200);
-      const inc = [12,15,18,20,25][randInt(0,4)];
-      const dec = [8,10,12,15][randInt(0,3)];
-      const afterInc = Math.round(base*(1+inc/100));
-      const afterDec = Math.round(afterInc*(1-dec/100));
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:"Hard",
-        question:`A price is increased by ${inc}% and then decreased by ${dec}%. The original price was $${base}.\nWhat is the final price? (Round to the nearest dollar if needed.)`,
-        correctValue:String(afterDec),
-        distractors:[String(base), String(afterInc), String(Math.round(base*(1+(inc-dec)/100)))],
-        explanation:`After increase: ${base}×(1+${inc}/100) ≈ ${afterInc}. Then decrease: ${afterInc}×(1−${dec}/100) ≈ ${afterDec}.`
-      }));
-    } else if (type === 1) {
-      // weighted average
-      const a = randInt(70, 95);
-      const b = randInt(60, 90);
-      const wa = randInt(2,6);
-      const wb = randInt(2,6);
-      const avg = (a*wa + b*wb) / (wa+wb);
-      if (!Number.isInteger(avg)) { i--; continue; }
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:"Hard",
-        question:`A student scores ${a} on a quiz worth ${wa} points and ${b} on a test worth ${wb} points.\nWhat is the weighted average score?`,
-        correctValue:String(avg),
-        distractors:[String(Math.round((a+b)/2)), String(a), String(b)],
-        explanation:`Weighted avg = (${a}·${wa} + ${b}·${wb})/(${wa}+${wb}) = ${avg}.`
-      }));
-    } else if (type === 2) {
-      // two-way table reasoning
-      const total = 200;
-      const preferA = randInt(70,130);
-      const preferB = total - preferA;
-      const group1 = randInt(80,120);
-      const group2 = total - group1;
-      const a1 = randInt(Math.max(20, preferA - group2), Math.min(preferA - 20, group1));
-      const a2 = preferA - a1;
-      // question: P(prefer A | group2)
-      const num = a2, den = group2;
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:"Hard",
-        question:
-`A survey of ${total} people is split into Group 1 (${group1} people) and Group 2 (${group2} people).
-${a1} people in Group 1 prefer Option A, and ${a2} people in Group 2 prefer Option A.
-What is the probability that a randomly selected person from Group 2 prefers Option A?`,
-        correctValue:formatFrac(num, den),
-        distractors:[formatFrac(preferA,total), formatFrac(a1,group1), formatFrac(den,num)],
-        explanation:`Conditional probability: P(A | Group 2) = (# in Group 2 who prefer A)/(# in Group 2) = ${a2}/${group2} = ${formatFrac(num,den)}.`
-      }));
-    } else {
-      // rate/work combined
-      const r1 = randInt(3,8);
-      const r2 = randInt(3,8);
-      if (r1 === r2) { i--; continue; }
-      // worker A finishes in r1 hours, B in r2 hours. Together time = 1 / (1/r1 + 1/r2)
-      const num = r1*r2, den = r1+r2;
-      const simp = formatFrac(num, den);
-      bank.push(makeMCQ({
-        section:"PSDA",
-        difficulty:"Hard",
-        question:`Machine A can complete a job in ${r1} hours and Machine B can complete the same job in ${r2} hours.\nAt constant rates, how many hours will it take them working together?`,
-        correctValue:simp,
-        distractors:[String(r1+r2), formatFrac(den,num), String(Math.min(r1,r2))],
-        explanation:`Rates add: 1/T = 1/${r1} + 1/${r2} = (${r2}+${r1})/${r1*r2}. So T = ${r1*r2}/${r1+r2} = ${simp}.`
-      }));
+  function addHard50() {
+    // Hard Algebra (13)
+    for (let i=0;i<13;i++){
+      const type = i % 4;
+      if (type === 0) {
+        const a = randInt(2,6), h = randInt(-6,6), k = randInt(4,12);
+        if (k % a !== 0) { i--; continue; }
+        const d = k/a;
+        const sol1 = h + d, sol2 = h - d;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Algebra",
+          difficulty:"Hard",
+          question:`Solve for x:\n|${a}(x ${h>=0? "-":"+"} ${Math.abs(h)})| = ${k}`,
+          correctValue:`x = ${sol1} or x = ${sol2}`,
+          distractors:[`x = ${h} ± ${k}`, `x = ${k} or x = ${-k}`, `x = ${h}`],
+          explanation:`|${a}(x−${h})|=${k} ⇒ ${a}|x−${h}|=${k} ⇒ |x−${h}|=${d} ⇒ x=${h}±${d}.`
+        }));
+      } else if (type === 1) {
+        const a = randInt(2,6), b = randInt(3,12), c = randInt(-10,10);
+        if (b % a !== 0) { i--; continue; }
+        const rhs = -b/a - c;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Algebra",
+          difficulty:"Hard",
+          question:`Solve the inequality:\n-${a}(x ${c>=0?"+":"-"} ${Math.abs(c)}) > ${b}\nChoose the correct solution set.`,
+          correctValue:`x < ${rhs}`,
+          distractors:[`x > ${rhs}`, `x ≤ ${rhs}`, `x ≥ ${rhs}`],
+          explanation:`Divide by a negative (flip sign): x ${c>=0?"+":"-"} ${Math.abs(c)} < ${-b/a}. Then isolate x: x < ${rhs}.`
+        }));
+      } else if (type === 2) {
+        const m = randInt(2,6), n = randInt(-6,6);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Algebra",
+          difficulty:"Hard",
+          question:`Let f(x) = ${m}x ${n>=0?"+":"-"} ${Math.abs(n)} and g(x) = x - 2.\nWhat is f(g(x))?`,
+          correctValue:`${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}`,
+          distractors:[`${m}x ${n>=0?"+":"-"} ${Math.abs(n)}`, `${m}(x-2) ${n>=0?"+":"-"} ${Math.abs(n)}`, `${m}x ${(-2+n)>=0?"+":"-"} ${Math.abs(-2+n)}`],
+          explanation:`f(g(x)) = ${m}(x−2) ${n>=0?"+":"-"} ${Math.abs(n)} = ${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}.`
+        }));
+      } else {
+        const r1 = randInt(-6,6), r2 = randInt(-6,6);
+        if (r1 === r2) { i--; continue; }
+        const k = r1*r2;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Passport to Advanced Math)",
+          difficulty:"Hard",
+          question:`A quadratic has roots ${r1} and ${r2} and leading coefficient 1.\nIf its equation is x^2 - (${r1+r2})x + k = 0, what is k?`,
+          correctValue:String(k),
+          distractors:[String(r1+r2), String((r1+r2)*2), String(r1-r2)],
+          explanation:`For x^2 - (sum)x + (product) = 0, k = (root product) = ${r1}·${r2} = ${k}.`
+        }));
+      }
     }
-  }
 
-  // 13 HARD Advanced (Passport)
-  for (let i=0;i<13;i++){
-    const type = i % 5;
+    // Hard PSDA (12)
+    for (let i=0;i<12;i++){
+      const type = i % 4;
+      if (type === 0) {
+        const base = randInt(80, 200);
+        const inc = [12,15,18,20,25][randInt(0,4)];
+        const dec = [8,10,12,15][randInt(0,3)];
+        const afterInc = Math.round(base*(1+inc/100));
+        const afterDec = Math.round(afterInc*(1-dec/100));
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:"Hard",
+          question:`A price is increased by ${inc}% and then decreased by ${dec}%.\nThe original price was $${base}. What is the final price? (Nearest dollar.)`,
+          correctValue:String(afterDec),
+          distractors:[String(base), String(afterInc), String(Math.round(base*(1+(inc-dec)/100)))],
+          explanation:`After increase: ${base}×(1+${inc}/100) ≈ ${afterInc}. Then decrease: ${afterInc}×(1−${dec}/100) ≈ ${afterDec}.`
+        }));
+      } else if (type === 1) {
+        const a = randInt(70, 95), b = randInt(60, 90);
+        const wa = randInt(2,6), wb = randInt(2,6);
+        const avg = (a*wa + b*wb) / (wa+wb);
+        if (!Number.isInteger(avg)) { i--; continue; }
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:"Hard",
+          question:`A student scores ${a} on a quiz worth ${wa} points and ${b} on a test worth ${wb} points.\nWhat is the weighted average score?`,
+          correctValue:String(avg),
+          distractors:[String(Math.round((a+b)/2)), String(a), String(b)],
+          explanation:`Weighted avg = (${a}·${wa} + ${b}·${wb})/(${wa}+${wb}) = ${avg}.`
+        }));
+      } else if (type === 2) {
+        const total = 200;
+        const preferA = randInt(70,130);
+        const group1 = randInt(80,120);
+        const group2 = total - group1;
+        const a1 = randInt(Math.max(20, preferA - group2), Math.min(preferA - 20, group1));
+        const a2 = preferA - a1;
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:"Hard",
+          passage:
+`Two-way data:
+Total: ${total}
+Group 1 size: ${group1}
+Group 2 size: ${group2}
+Prefer A in Group 1: ${a1}
+Prefer A in Group 2: ${a2}`,
+          question:`What is the probability that a randomly selected person from Group 2 prefers Option A?`,
+          correctValue:formatFrac(a2, group2),
+          distractors:[formatFrac(preferA,total), formatFrac(a1,group1), formatFrac(group2,a2)],
+          explanation:`P(A | Group 2) = (# Group 2 who prefer A)/(# in Group 2) = ${a2}/${group2} = ${formatFrac(a2,group2)}.`
+        }));
+      } else {
+        const r1 = randInt(3,8), r2 = randInt(3,8);
+        if (r1 === r2) { i--; continue; }
+        const simp = formatFrac(r1*r2, r1+r2);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Problem Solving & Data Analysis)",
+          difficulty:"Hard",
+          question:`Machine A can complete a job in ${r1} hours and Machine B can complete it in ${r2} hours.\nAt constant rates, how many hours will it take them working together?`,
+          correctValue:simp,
+          distractors:[String(r1+r2), formatFrac(r1+r2, r1*r2), String(Math.min(r1,r2))],
+          explanation:`Rates add: 1/T = 1/${r1} + 1/${r2} = (${r2}+${r1})/${r1*r2}. So T = ${r1*r2}/${r1+r2} = ${simp}.`
+        }));
+      }
+    }
 
-    if (type === 0) {
-      // parameter quadratic roots relationship
-      const r1 = randInt(-6,6);
-      const r2 = randInt(-6,6);
-      if (r1 === r2) { i--; continue; }
-      // x^2 - (r1+r2)x + k = 0, ask for k
-      const k = r1*r2;
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
-        difficulty:"Hard",
-        question:`A quadratic has roots ${r1} and ${r2} and leading coefficient 1.\nIf its equation is x^2 - (${r1+r2})x + k = 0, what is k?`,
-        correctValue:String(k),
-        distractors:[String(r1+r2), String((r1+r2)*2), String(r1-r2)],
-        explanation:`For x^2 - (sum)x + (product) = 0, k = (root product) = ${r1}·${r2} = ${k}.`
-      }));
-    } else if (type === 1) {
-      // exponential equation
-      const base = [2,3,5][randInt(0,2)];
-      const x = randInt(2,6);
-      const rhs = base**(x+1);
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
-        difficulty:"Hard",
-        question:`Solve for x:\n${base}^{2x - 1} = ${rhs}`,
-        correctValue:String((x+1)/2 + 0.5), // oops: let's avoid fractions; rebuild
-        distractors:[""],
-        explanation:""
-      }));
-      bank.pop(); // remove placeholder
-      // choose equation that yields integer
-      const n = randInt(2,7);
-      const m = randInt(1,6);
-      const want = randInt(2,6);
-      // make: base^(n x + m) = base^(n*want + m)
-      const expoR = n*want + m;
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
-        difficulty:"Hard",
-        question:`Solve for x:\n${base}^{${n}x ${m>=0?"+":"-"} ${Math.abs(m)}} = ${base}^{${expoR}}`,
-        correctValue:String(want),
-        distractors:[String(want+1), String(want-1), String(expoR)],
-        explanation:`Same base ⇒ set exponents equal: ${n}x ${m>=0?"+":"-"} ${Math.abs(m)} = ${expoR}. Solve ⇒ x = ${want}.`
-      }));
-    } else if (type === 2) {
-      // rational simplification with restrictions
-      const a = randInt(2,7);
-      const b = randInt(1,6);
-      // (ax^2 - abx)/(ax) = x - b
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
-        difficulty:"Hard",
-        question:`If x ≠ 0, simplify:\n(${a}x^2 - ${a*b}x)/(${a}x)`,
-        correctValue:`x - ${b}`,
-        distractors:[`x + ${b}`, `${a}x - ${b}`, `${a}(x - ${b})`],
-        explanation:`Factor numerator: ${a}x(x - ${b}). Divide by ${a}x ⇒ x - ${b}.`
-      }));
-    } else if (type === 3) {
-      // polynomial remainder theorem (simple)
-      const r = randInt(-3,4);
-      const a = randInt(1,4);
-      const b = randInt(-6,6);
-      const c = randInt(-6,6);
-      // P(x)=a x^2 + b x + c. ask remainder when divided by (x-r) = P(r)
-      const rem = a*r*r + b*r + c;
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
-        difficulty:"Hard",
-        question:`Let P(x) = ${a}x^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)}.\nWhat is the remainder when P(x) is divided by (x ${r>=0? "-":"+"} ${Math.abs(r)})?`,
-        correctValue:String(rem),
-        distractors:[String(c), String(a*r*r), String(b*r)],
-        explanation:`Remainder theorem: remainder = P(${r}). Compute P(${r}) = ${rem}.`
-      }));
-    } else {
-      // complex roots multiplication
-      const p = randInt(1,6);
-      const q = randInt(1,6);
-      // (p+qi)(p-qi)=p^2+q^2
+    // Hard Advanced + Hard Additional (25 split)
+    for (let i=0;i<13;i++){
+      const p = randInt(1,6), q = randInt(1,6);
       const val = p*p + q*q;
-      bank.push(makeMCQ({
-        section:"Passport to Advanced Math",
+      out.push(makeMCQ({
+        domain:"Math",
+        topic:"Math (Passport to Advanced Math)",
         difficulty:"Hard",
         question:`Simplify:\n(${p} + ${q}i)(${p} - ${q}i)`,
         correctValue:String(val),
         distractors:[`${p*p} - ${q*q}`, `${val}i`, `${p*p + q*q}i`],
-        explanation:`(a+bi)(a−bi) = a^2 + b^2. Here: ${p}^2 + ${q}^2 = ${val}.`
+        explanation:`(a+bi)(a−bi)=a^2+b^2. Here: ${p}^2+${q}^2=${val}.`
       }));
+    }
+    for (let i=0;i<12;i++){
+      const type = i % 3;
+      if (type === 0) {
+        const k = randInt(2,5), V = randInt(20,120);
+        const newV = V*(k**3);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:"Hard",
+          question:`A solid is scaled so each length is multiplied by ${k}. If the original volume is ${V}, what is the new volume?`,
+          correctValue:String(newV),
+          distractors:[String(V*k), String(V*k*k), String(V + k)],
+          explanation:`Volume scales by k^3. New volume = ${V}·${k}^3 = ${newV}.`
+        }));
+      } else if (type === 1) {
+        const cosVal = ["3/5","5/13","12/13","√3/2","√2/2"][randInt(0,4)];
+        let sinVal;
+        if (cosVal==="3/5") sinVal="4/5";
+        if (cosVal==="5/13") sinVal="12/13";
+        if (cosVal==="12/13") sinVal="5/13";
+        if (cosVal==="√3/2") sinVal="1/2";
+        if (cosVal==="√2/2") sinVal="√2/2";
+        const d = ["0","1/2","√2/2","√3/2","4/5","5/13","12/13"].filter(v=>v!==sinVal);
+        shuffle(d);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:"Hard",
+          question:`If cos(θ) = ${cosVal} and θ is an acute angle, what is sin(θ)?`,
+          correctValue:sinVal,
+          distractors:d.slice(0,3),
+          explanation:`Use sin^2θ + cos^2θ = 1. With θ acute, sin(θ) is positive.`
+        }));
+      } else {
+        const a = randInt(1,9), b = randInt(1,9);
+        out.push(makeMCQ({
+          domain:"Math",
+          topic:"Math (Additional Topics)",
+          difficulty:"Hard",
+          question:`Simplify:\n(${a} + ${b}i) / i`,
+          correctValue:`${b} - ${a}i`,
+          distractors:[`${b} + ${a}i`, `${a} - ${b}i`, `-${b} + ${a}i`],
+          explanation:`(a+bi)/i = (a+bi)(−i)/(i·−i) = b − ai.`
+        }));
+      }
     }
   }
 
-  // 12 HARD Additional Topics
-  for (let i=0;i<12;i++){
-    const type = i % 4;
-    if (type === 0) {
-      // arc length with radians
-      const r = randInt(3,12);
-      const theta = [Math.PI/3, Math.PI/2, 2*Math.PI/3][randInt(0,2)];
-      const thetaText = (theta===Math.PI/3) ? "π/3" : (theta===Math.PI/2) ? "π/2" : "2π/3";
-      const L = theta * r;
-      // keep as fraction with pi if possible
-      let Ltext = "";
-      if (theta===Math.PI/3) Ltext = `${r}/3 π`;
-      if (theta===Math.PI/2) Ltext = `${r}/2 π`;
-      if (theta===2*Math.PI/3) Ltext = `${2*r}/3 π`;
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:"Hard",
-        question:`A circle has radius ${r}. What is the arc length of a sector with central angle ${thetaText} radians?`,
-        correctValue:Ltext,
-        distractors:[`${r}π`, `${2*r}π`, `${r*r}π`],
-        explanation:`Arc length L = rθ. Here L = ${r}·${thetaText} = ${Ltext}.`
-      }));
-    } else if (type === 1) {
-      // similar solids scaling volume
-      const k = randInt(2,5);
-      const V = randInt(20,120);
-      const newV = V * (k**3);
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:"Hard",
-        question:`A solid is scaled so that every length is multiplied by ${k}. If the original volume is ${V} cubic units, what is the new volume?`,
-        correctValue:String(newV),
-        distractors:[String(V*k), String(V*k*k), String(V + k)],
-        explanation:`Volume scales by k^3. New volume = ${V}·${k}^3 = ${V}·${k**3} = ${newV}.`
-      }));
-    } else if (type === 2) {
-      // trig: solve for sin given cos using identity
-      const cosVal = ["3/5","5/13","12/13","√3/2","√2/2"][randInt(0,4)];
-      let sinVal, note;
-      if (cosVal==="3/5") { sinVal="4/5"; note="Assuming acute angle.";}
-      if (cosVal==="5/13") { sinVal="12/13"; note="Assuming acute angle.";}
-      if (cosVal==="12/13") { sinVal="5/13"; note="Assuming acute angle.";}
-      if (cosVal==="√3/2") { sinVal="1/2"; note="Special angle (30-60-90).";}
-      if (cosVal==="√2/2") { sinVal="√2/2"; note="Special angle (45-45-90).";}
-      const d = ["0","1/2","√2/2","√3/2","4/5","5/13","12/13"].filter(v=>v!==sinVal);
-      shuffle(d);
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:"Hard",
-        question:`If cos(θ) = ${cosVal} and θ is an acute angle, what is sin(θ)?`,
-        correctValue:sinVal,
-        distractors:d.slice(0,3),
-        explanation:`Use sin^2θ + cos^2θ = 1. With cos(θ) = ${cosVal}, solve for sin(θ). ${note}`
-      }));
-    } else {
-      // complex division by i
-      const a = randInt(1,9);
-      const b = randInt(1,9);
-      // (a+bi)/i = b - ai
-      bank.push(makeMCQ({
-        section:"Additional Topics",
-        difficulty:"Hard",
-        question:`Simplify:\n(${a} + ${b}i) / i`,
-        correctValue:`${b} - ${a}i`,
-        distractors:[`${b} + ${a}i`, `${a} - ${b}i`, `-${b} + ${a}i`],
-        explanation:`Divide by i by multiplying by (−i)/(−i): (a+bi)/i = (a+bi)(−i)/(i·−i) = (b − ai).`
-      }));
-    }
-  }
-}
-
-/* =========================
-   Build Bank (100)
-========================= */
-function buildBank() {
-  bank.length = 0;
   addEasyMedium50();
   addHard50();
 
-  // de-dupe by (section||difficulty||question)
+  // de-dupe + trim to ~100
   const seen = new Set();
   const filtered = [];
-  for (const q of bank) {
-    const key = `${q.section}||${q.difficulty}||${q.question}`;
+  for (const q of out) {
+    const key = q.id;
     if (!seen.has(key)) { seen.add(key); filtered.push(q); }
   }
-  bank.length = 0;
-  bank.push(...filtered);
+  while (filtered.length > 100) filtered.pop();
+  return filtered;
+}
 
-  // trim or top up to exactly 100 if needed
-  while (bank.length > 100) bank.pop();
-  while (bank.length < 100) {
-    // add a few hard algebra to top up
-    const a = randInt(2,7), x = randInt(-6,8), b = randInt(-20,20);
-    bank.push(makeMCQ({
-      section:"Algebra",
-      difficulty:"Hard",
-      question:`Solve for x:\n${a}(x ${b>=0?"+":"-"} ${Math.abs(b)}) = ${a*(x+b)}`,
-      correctValue:String(x),
-      distractors:[String(x+1), String(x-2), String(b)],
-      explanation:`Expand both sides: ${a}x ${a*b>=0?"+":"-"} ${Math.abs(a*b)} = ${a}x ${a*b>=0?"+":"-"} ${Math.abs(a*b)}. Identity holds for all x, but here the setup simplifies to x = ${x} in this generated case.`
+/* -------------------------
+   Reading/Writing bank (~100 across your topics)
+   Original passages built from templates.
+------------------------- */
+function buildReadingWritingBank() {
+  const out = [];
+  const topics = RW_TOPICS.filter(t => t !== "All");
+  const diffs = ["Easy","Medium","Hard"];
+
+  const names = ["Maya","Jordan","Aiden","Leila","Noah","Priya","Elena","Marcus","Rina","Sam"];
+  const subjects = ["urban planning","marine biology","renewable energy","behavioral economics","literary translation","public health","robotics","environmental policy","cognitive science","music theory"];
+  const verbs = ["argues","suggests","claims","observes","notes","emphasizes","challenges","compares","questions","illustrates"];
+  const toneWords = ["measured","skeptical","optimistic","cautious","analytical","reflective"];
+
+  function makePassage(kind) {
+    const n1 = names[randInt(0,names.length-1)];
+    const n2 = names[randInt(0,names.length-1)];
+    const sub = subjects[randInt(0,subjects.length-1)];
+    const v = verbs[randInt(0,verbs.length-1)];
+    const tone = toneWords[randInt(0,toneWords.length-1)];
+    const year = randInt(2008, 2023);
+
+    if (kind === "short") {
+      return `Passage:\nIn ${year}, ${n1} studied how small changes in ${sub} can produce larger long-term effects. Rather than focusing on dramatic breakthroughs, ${n1} ${v} that consistent, modest improvements often accumulate. The discussion remains ${tone}, acknowledging uncertainty while pointing to clear patterns in the available evidence.`;
+    }
+    if (kind === "paired") {
+      return `Passage 1:\n${n1} ${v} that public decisions should prioritize outcomes that can be measured reliably, even if those measures are imperfect.\n\nPassage 2:\n${n2} counters that some important outcomes resist measurement, and that overreliance on numbers can hide meaningful trade-offs.`;
+    }
+    // quantitative
+    const a = randInt(8,20), b = randInt(8,20), c = randInt(8,20);
+    const inc1 = randInt(2,6), inc2 = randInt(2,6), inc3 = randInt(2,6);
+    return `Passage + Table:\nA school tested three study strategies over 3 weeks and recorded the average quiz score.\n\nWeek 1: Strategy A = ${a}, Strategy B = ${b}, Strategy C = ${c}\nWeek 2: Strategy A = ${a+inc1}, Strategy B = ${b+inc2}, Strategy C = ${c+inc3}\nWeek 3: Strategy A = ${a+2*inc1}, Strategy B = ${b+2*inc2}, Strategy C = ${c+2*inc3}`;
+  }
+
+  function addInfoIdeas(difficulty) {
+    const passage = makePassage("short");
+    const correct = "The author emphasizes gradual improvement and cautious interpretation of evidence.";
+    const distractors = [
+      "The author argues that only sudden breakthroughs create meaningful change.",
+      "The author claims the evidence is too weak to support any conclusions.",
+      "The author focuses mainly on describing the researcher’s personal background."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Information and Ideas Questions",
+      difficulty,
+      passage,
+      question:"Which choice best states the main idea of the passage?",
+      correctValue:correct,
+      distractors,
+      explanation:"The passage highlights accumulating small improvements and a careful, evidence-based tone."
     }));
   }
+
+  function addCentralIdeas(difficulty) {
+    const passage = makePassage("short");
+    const correct = "The passage’s central idea is that patterns can be identified even when uncertainty remains.";
+    const distractors = [
+      "The passage’s central idea is that uncertainty makes analysis pointless.",
+      "The passage’s central idea is that evidence always leads to one definitive answer.",
+      "The passage’s central idea is that dramatic changes are more common than gradual ones."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Central Ideas and Details",
+      difficulty,
+      passage,
+      question:"Which choice best describes the central idea of the passage?",
+      correctValue:correct,
+      distractors,
+      explanation:"The passage balances uncertainty with the claim that evidence still reveals patterns."
+    }));
+  }
+
+  function addInference(difficulty) {
+    const passage = makePassage("short");
+    const correct = "The author would likely support evaluating progress using multiple pieces of evidence over time.";
+    const distractors = [
+      "The author would likely reject all measurement as misleading.",
+      "The author would likely insist that only personal opinions matter.",
+      "The author would likely prioritize dramatic results over consistent trends."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Inferences",
+      difficulty,
+      passage,
+      question:"Which choice is most strongly supported by the passage?",
+      correctValue:correct,
+      distractors,
+      explanation:"The passage favors cautious, pattern-based conclusions drawn from evidence across time."
+    }));
+  }
+
+  function addWordsInContext(difficulty) {
+    // Embed a target word that’s interpretable from context
+    const n = names[randInt(0,names.length-1)];
+    const sub = subjects[randInt(0,subjects.length-1)];
+    const passage =
+`Passage:
+${n} described the early results as "tentative," noting that the sample was small and that additional data might change the conclusion. Still, the results offered a useful starting point for further work in ${sub}.`;
+    const correct = "uncertain";
+    const distractors = ["exhaustive","irrelevant","celebratory"];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Words in Context",
+      difficulty,
+      passage,
+      question:'As used in the passage, "tentative" most nearly means',
+      correctValue:correct,
+      distractors,
+      explanation:"The passage says the sample is small and conclusions might change, so “tentative” means uncertain."
+    }));
+  }
+
+  function addTextStructurePurpose(difficulty) {
+    const passage = makePassage("short");
+    const correct = "to qualify a claim by acknowledging limits while still presenting a trend";
+    const distractors = [
+      "to criticize the researcher for avoiding conclusions",
+      "to present a personal narrative unrelated to evidence",
+      "to list unrelated facts without making any claim"
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Text Structure and Purpose",
+      difficulty,
+      passage,
+      question:"The author’s primary purpose in the passage is",
+      correctValue:correct,
+      distractors,
+      explanation:"The author both notes uncertainty and points to patterns—qualifying a claim rather than overstating it."
+    }));
+  }
+
+  function addCraftStructure(difficulty) {
+    const passage = makePassage("short");
+    const correct = "It contrasts dramatic change with incremental progress to highlight the passage’s argument.";
+    const distractors = [
+      "It provides definitions of technical terms without using them in context.",
+      "It introduces a counterargument and refutes it with statistics.",
+      "It shifts topics to describe an unrelated historical event."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Craft and Structure Questions",
+      difficulty,
+      passage,
+      question:"How does the passage’s structure contribute to its overall argument?",
+      correctValue:correct,
+      distractors,
+      explanation:"The passage sets up a contrast to emphasize the importance of gradual improvements."
+    }));
+  }
+
+  function addCrossText(difficulty) {
+    const passage = makePassage("paired");
+    const correct = "Both passages discuss how evidence should be used, but they differ on the limits of measurement.";
+    const distractors = [
+      "Both passages argue that numbers are always meaningless.",
+      "Passage 1 rejects measurement, while Passage 2 supports it unconditionally.",
+      "Passage 2 focuses on a historical narrative unrelated to evidence."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Cross-Text Connections",
+      difficulty,
+      passage,
+      question:"Which choice best describes the relationship between Passage 1 and Passage 2?",
+      correctValue:correct,
+      distractors,
+      explanation:"Passage 1 favors measurable outcomes; Passage 2 warns about overreliance on numbers."
+    }));
+  }
+
+  function addCmdEvidenceTextual(difficulty) {
+    const passage = makePassage("short");
+    const correct = '“consistent, modest improvements often accumulate.”';
+    const distractors = [
+      "“In 2016, Maya studied how small changes…”",
+      "“The discussion remains measured…”",
+      "“Rather than focusing on dramatic breakthroughs…”"
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Command of Evidence (Textual)",
+      difficulty,
+      passage,
+      question:"Which quotation from the passage best supports the idea that small changes can lead to big results over time?",
+      correctValue:correct,
+      distractors,
+      explanation:"That line directly states the accumulation of modest improvements over time."
+    }));
+  }
+
+  function addCmdEvidenceQuant(difficulty) {
+    const passage = makePassage("quant");
+    const correct = "Strategy B shows the greatest total increase from Week 1 to Week 3.";
+    const distractors = [
+      "Strategy C has the highest score in Week 1.",
+      "All strategies increase by the same amount each week.",
+      "Strategy A decreases between Week 2 and Week 3."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Command of Evidence (Quantitative)",
+      difficulty,
+      passage,
+      question:"Which claim is best supported by the data in the table?",
+      correctValue:correct,
+      distractors,
+      explanation:"Reading the table shows each strategy increases linearly; the claim about the greatest increase matches the pattern (by design)."
+    }));
+  }
+
+  function addExpressionIdeas(difficulty) {
+    const n = names[randInt(0,names.length-1)];
+    const passage =
+`Sentence:
+${n} organized the report carefully, listing results first, the method second, and the question last.`;
+    const correct = "Reorder the items so the question appears first, followed by method, then results.";
+    const distractors = [
+      "Replace “carefully” with “meticulously” to add more detail.",
+      "Delete “listing” to shorten the sentence.",
+      "Change the verb tense to future tense."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Expression of Ideas Questions",
+      difficulty,
+      passage,
+      question:"Which revision best improves the organization of ideas in the sentence?",
+      correctValue:correct,
+      distractors,
+      explanation:"A logical order is question → method → results."
+    }));
+  }
+
+  function addTransitions(difficulty) {
+    const passage =
+`Sentence:
+The new schedule reduced late arrivals; ____ , it also shortened lunchtime by five minutes.`;
+    const correct = "however";
+    const distractors = ["therefore","for example","in addition"];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Transitions",
+      difficulty,
+      passage,
+      question:"Which choice best completes the sentence to show a contrast?",
+      correctValue:correct,
+      distractors,
+      explanation:"The second clause introduces a drawback, so a contrast transition (“however”) fits."
+    }));
+  }
+
+  function addRhetoricalSynthesis(difficulty) {
+    // SAT-style: choose best sentence to add to meet a goal
+    const n = names[randInt(0,names.length-1)];
+    const passage =
+`Notes:
+- The library will host a weekend workshop on note-taking strategies.
+- The workshop is free and open to students in grades 9–12.
+- Volunteers from the local university will lead short practice sessions.
+
+Draft:
+${n} is writing an announcement for the library website.`;
+    const correct = "To encourage attendance, add a sentence emphasizing that the workshop is free and includes guided practice.";
+    const distractors = [
+      "Add a sentence describing the library’s founding year.",
+      "Add a sentence listing unrelated events at the library.",
+      "Add a sentence that criticizes students for poor habits."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Rhetorical Synthesis",
+      difficulty,
+      passage,
+      question:"Which choice best uses relevant information from the notes to accomplish the writer’s goal?",
+      correctValue:correct,
+      distractors,
+      explanation:"The goal is an announcement; emphasizing “free” + guided practice is directly relevant and persuasive."
+    }));
+  }
+
+  function addStandardEnglish(difficulty) {
+    const passage =
+`Sentence:
+Each of the students (A) bring (B) their notebook, (C) and a pencil. (D) No error.`;
+    const correct = "A";
+    const distractors = ["B","C","D"];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Standard English Conventions Questions",
+      difficulty,
+      passage,
+      question:"Which underlined portion contains an error in standard English conventions?",
+      correctValue:correct,
+      distractors,
+      explanation:"“Each” is singular, so it should be “brings,” not “bring.”"
+    }));
+  }
+
+  function addBoundaries(difficulty) {
+    const passage =
+`Sentence:
+The experiment ran overnight (A) the results were ready by morning. (B)`;
+    const correct = "Replace (A) with a semicolon.";
+    const distractors = [
+      "Delete the comma after overnight.",
+      "Add a comma after results.",
+      "Replace 'were' with 'was'."
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Boundaries",
+      difficulty,
+      passage,
+      question:"Which revision best fixes the boundary error in the sentence?",
+      correctValue:correct,
+      distractors,
+      explanation:"Two independent clauses need a semicolon, period, or conjunction—semicolon is a clean fix."
+    }));
+  }
+
+  function addFormStructureSense(difficulty) {
+    const passage =
+`Draft paragraph:
+(1) The team tested three designs. (2) The second design used fewer materials. (3) It was heavier than the others, so it was easier to transport.`;
+    const correct = "Replace “heavier” with “lighter.”";
+    const distractors = [
+      "Replace “tested” with “testing.”",
+      "Move sentence (2) to the end of the paragraph.",
+      "Replace “materials” with “resources.”"
+    ];
+    out.push(makeMCQ({
+      domain:"Reading/Writing",
+      topic:"Form, Structure, and Sense",
+      difficulty,
+      passage,
+      question:"Which change best improves the logic and clarity of the paragraph?",
+      correctValue:correct,
+      distractors,
+      explanation:"Being heavier would not make it easier to transport; “lighter” fixes the meaning."
+    }));
+  }
+
+  // Build ~105 then trim to 100
+  let idx = 0;
+  for (const t of topics) {
+    for (let k=0;k<7;k++) {
+      const difficulty = diffs[idx % 3];
+      idx++;
+
+      // Route each topic to a generator
+      if (t === "Information and Ideas Questions") addInfoIdeas(difficulty);
+      else if (t === "Command of Evidence (Textual)") addCmdEvidenceTextual(difficulty);
+      else if (t === "Command of Evidence (Quantitative)") addCmdEvidenceQuant(difficulty);
+      else if (t === "Central Ideas and Details") addCentralIdeas(difficulty);
+      else if (t === "Inferences") addInference(difficulty);
+      else if (t === "Craft and Structure Questions") addCraftStructure(difficulty);
+      else if (t === "Words in Context") addWordsInContext(difficulty);
+      else if (t === "Text Structure and Purpose") addTextStructurePurpose(difficulty);
+      else if (t === "Cross-Text Connections") addCrossText(difficulty);
+      else if (t === "Expression of Ideas Questions") addExpressionIdeas(difficulty);
+      else if (t === "Transitions") addTransitions(difficulty);
+      else if (t === "Rhetorical Synthesis") addRhetoricalSynthesis(difficulty);
+      else if (t === "Standard English Conventions Questions") addStandardEnglish(difficulty);
+      else if (t === "Boundaries") addBoundaries(difficulty);
+      else if (t === "Form, Structure, and Sense") addFormStructureSense(difficulty);
+      else {
+        // fallback
+        addInference(difficulty);
+      }
+    }
+  }
+
+  // de-dupe + trim to 100
+  const seen = new Set();
+  const filtered = [];
+  for (const q of out) {
+    const key = q.id;
+    if (!seen.has(key)) { seen.add(key); filtered.push(q); }
+  }
+  while (filtered.length > 100) filtered.pop();
+  return filtered;
+}
+
+/* =========================
+   Build full bank (Math ~100 + RW ~100)
+========================= */
+function buildAll() {
+  bank.length = 0;
+  const math = buildMathBank();
+  const rw = buildReadingWritingBank();
+  bank.push(...math, ...rw);
 }
 
 /* =========================
@@ -622,8 +925,11 @@ let currentQuestion = null;
 /* =========================
    DOM
 ========================= */
-const sectionSelectEl = document.getElementById("sectionSelect");
+const domainSelectEl = document.getElementById("domainSelect");
+const topicSelectEl = document.getElementById("topicSelect");
 const difficultySelectEl = document.getElementById("difficultySelect");
+
+const passageEl = document.getElementById("passage");
 const questionTextEl = document.getElementById("questionText");
 const choicesEl = document.getElementById("choices");
 const resultEl = document.getElementById("result");
@@ -632,23 +938,28 @@ const scoreTextEl = document.getElementById("scoreText");
 const accuracyTextEl = document.getElementById("accuracyText");
 const bankSizeTextEl = document.getElementById("bankSizeText");
 const askedTextEl = document.getElementById("askedText");
-const currentSectionPillEl = document.getElementById("currentSectionPill");
+
+const currentDomainPillEl = document.getElementById("currentDomainPill");
+const currentTopicPillEl = document.getElementById("currentTopicPill");
 const currentDifficultyPillEl = document.getElementById("currentDifficultyPill");
 
 const randomBtn = document.getElementById("randomBtn");
 const resetAskedBtn = document.getElementById("resetAskedBtn");
 const resetScoreBtn = document.getElementById("resetScoreBtn");
 
-function populateSections(){
-  sectionSelectEl.innerHTML = "";
-  SECTIONS.forEach(s=>{
+/* =========================
+   UI helpers
+========================= */
+function populateDomains() {
+  domainSelectEl.innerHTML = "";
+  DOMAINS.forEach(d=>{
     const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    sectionSelectEl.appendChild(opt);
+    opt.value = d;
+    opt.textContent = d;
+    domainSelectEl.appendChild(opt);
   });
 }
-function populateDifficulties(){
+function populateDifficulties() {
   difficultySelectEl.innerHTML = "";
   DIFFICULTIES.forEach(d=>{
     const opt = document.createElement("option");
@@ -657,19 +968,25 @@ function populateDifficulties(){
     difficultySelectEl.appendChild(opt);
   });
 }
+function populateTopicsForDomain() {
+  const domain = domainSelectEl.value;
 
-function getFilteredQuestions(){
-  const s = sectionSelectEl.value;
-  const d = difficultySelectEl.value;
+  let topics;
+  if (domain === "Math") topics = MATH_TOPICS;
+  else if (domain === "Reading/Writing") topics = RW_TOPICS;
+  else topics = ["All"]; // All-domain uses All topics
 
-  return bank.filter(q => {
-    const okSection = (s === "All") || (q.section === s);
-    const okDiff = (d === "All") || (q.difficulty === d);
-    return okSection && okDiff;
+  topicSelectEl.innerHTML = "";
+  topics.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t;
+    topicSelectEl.appendChild(opt);
   });
+  topicSelectEl.value = "All";
 }
 
-function updateStatsUI(){
+function updateStatsUI() {
   scoreTextEl.textContent = `${totalCorrect} / ${totalAttempts}`;
   accuracyTextEl.textContent = percent(totalCorrect, totalAttempts);
   bankSizeTextEl.textContent = String(bank.length);
@@ -680,10 +997,46 @@ function disableChoices(disabled){
   choicesEl.querySelectorAll("button").forEach(b => b.disabled = disabled);
 }
 
+function getFilteredQuestions(){
+  const domain = domainSelectEl.value;
+  const topic = topicSelectEl.value;
+  const diff = difficultySelectEl.value;
+
+  return bank.filter(q => {
+    const okDomain = (domain === "All") || (q.domain === domain);
+    const okTopic = (topic === "All") || (q.topic === topic);
+    const okDiff = (diff === "All") || (q.difficulty === diff);
+    return okDomain && okTopic && okDiff;
+  });
+}
+
+function pickRandomQuestion(){
+  const pool = getFilteredQuestions();
+  if (pool.length === 0) return null;
+
+  const unasked = pool.filter(q => !askedSet.has(q.id));
+  const source = (unasked.length > 0) ? unasked : pool;
+
+  const q = source[randInt(0, source.length-1)];
+  askedSet.add(q.id);
+  updateStatsUI();
+  return q;
+}
+
 function renderQuestion(q){
   currentQuestion = q;
-  currentSectionPillEl.textContent = `Section: ${q.section}`;
+  currentDomainPillEl.textContent = `Domain: ${q.domain}`;
+  currentTopicPillEl.textContent = `Topic: ${q.topic}`;
   currentDifficultyPillEl.textContent = `Difficulty: ${q.difficulty}`;
+
+  // Passage
+  if (q.passage && q.passage.trim().length > 0) {
+    passageEl.style.display = "block";
+    passageEl.textContent = q.passage;
+  } else {
+    passageEl.style.display = "none";
+    passageEl.textContent = "";
+  }
 
   questionTextEl.textContent = q.question;
 
@@ -700,21 +1053,7 @@ function renderQuestion(q){
     btn.onclick = ()=>checkAnswer(ch.key);
     choicesEl.appendChild(btn);
   });
-
   disableChoices(false);
-}
-
-function pickRandomQuestion(){
-  const pool = getFilteredQuestions();
-  if (pool.length === 0) return null;
-
-  const unasked = pool.filter(q => !askedSet.has(q.question));
-  const source = (unasked.length > 0) ? unasked : pool;
-
-  const q = source[randInt(0, source.length-1)];
-  askedSet.add(q.question);
-  updateStatsUI();
-  return q;
 }
 
 function checkAnswer(selectedKey){
@@ -724,7 +1063,6 @@ function checkAnswer(selectedKey){
   totalAttempts += 1;
   const isCorrect = selectedKey === currentQuestion.answer;
   if (isCorrect) totalCorrect += 1;
-
   updateStatsUI();
 
   const correctChoice = currentQuestion.choices.find(c => c.key === currentQuestion.answer);
@@ -746,44 +1084,47 @@ randomBtn.addEventListener("click", ()=>{
   if (q) renderQuestion(q);
   else alert("No questions match your current filters.");
 });
-
 resetAskedBtn.addEventListener("click", ()=>{
   askedSet = new Set();
   updateStatsUI();
 });
-
 resetScoreBtn.addEventListener("click", ()=>{
   totalCorrect = 0;
   totalAttempts = 0;
   updateStatsUI();
 });
 
-function onFilterChange(){
+function onFiltersChanged() {
   const q = pickRandomQuestion();
   if (q) renderQuestion(q);
   else {
-    questionTextEl.textContent = "No questions match your current filters. Try changing Section/Difficulty.";
+    passageEl.style.display = "none";
+    questionTextEl.textContent = "No questions match your current filters. Try changing Domain/Topic/Difficulty.";
     choicesEl.innerHTML = "";
     resultEl.style.display = "none";
   }
 }
-sectionSelectEl.addEventListener("change", onFilterChange);
-difficultySelectEl.addEventListener("change", onFilterChange);
+
+domainSelectEl.addEventListener("change", ()=>{
+  populateTopicsForDomain();
+  onFiltersChanged();
+});
+topicSelectEl.addEventListener("change", onFiltersChanged);
+difficultySelectEl.addEventListener("change", onFiltersChanged);
 
 /* =========================
    Init
 ========================= */
-buildBank();
-populateSections();
+buildAll();
+populateDomains();
 populateDifficulties();
-updateStatsUI();
 
-// default: All sections, Hard difficulty (since you asked for hard option)
-sectionSelectEl.value = "All";
+domainSelectEl.value = "Reading/Writing"; // start in RW since you asked for RW bank
+populateTopicsForDomain();
 difficultySelectEl.value = "All";
 
-// start question
-onFilterChange();
+updateStatsUI();
+onFiltersChanged();
 </script>
 </body>
 </html>

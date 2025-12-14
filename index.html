@@ -1,213 +1,587 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Free SAT Practice</title>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
-}
-.card {
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 18px;
-  margin-top: 16px;
-}
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-select, button, input {
-  padding: 10px;
-  font-size: 16px;
-}
-button { cursor: pointer; }
-button:disabled { opacity: 0.6; }
-.choices button {
-  width: 100%;
-  margin-top: 8px;
-  text-align: left;
-}
-.result {
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 8px;
-  display: none;
-}
-.correct { background: #e8f5e9; border: 1px solid #2e7d32; }
-.incorrect { background: #fdecea; border: 1px solid #c62828; }
-.footer {
-  margin-top: 25px;
-  font-size: 12px;
-  color: #666;
-}
-.aiBox {
-  border: 1px dashed #aaa;
-  border-radius: 10px;
-  padding: 14px;
-  margin-top: 20px;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Free SAT Math Practice</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 920px; margin: 0 auto; padding: 22px; line-height: 1.5; }
+    h1 { margin: 0 0 6px; }
+    .subtle { color:#555; margin: 0 0 14px; }
+    .card { border: 1px solid #ddd; border-radius: 14px; padding: 18px; margin-top: 14px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    select, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #ccc; background:#fff; }
+    button { cursor:pointer; }
+    button:hover { background:#f7f7f7; }
+    button:disabled { cursor:not-allowed; opacity:.6; }
+    .question { margin: 14px 0 0; font-size:18px; white-space:pre-wrap; }
+    .choices { margin-top: 12px; display:grid; grid-template-columns:1fr; gap:10px; }
+    .choiceBtn { text-align:left; width:100%; }
+    .result { margin-top: 12px; padding: 12px; border-radius: 10px; border:1px solid #ddd; background:#fafafa; display:none; white-space:pre-wrap; }
+    .correct { border-color:#2e7d32; background:#eef8ef; }
+    .incorrect { border-color:#c62828; background:#fdeeee; }
+    .scoreBox { margin-top: 10px; border:1px solid #eee; border-radius:10px; padding:12px; background:#fbfbfb; }
+    .scoreLine { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .pill { display:inline-block; padding:4px 10px; border:1px solid #ddd; border-radius:999px; background:#fff; font-size:13px; color:#444; }
+    .footer { margin-top: 26px; font-size: 12px; color:#666; border-top:1px solid #eee; padding-top:12px; }
+  </style>
 </head>
-
 <body>
+  <h1>Free SAT Math Practice</h1>
+  <p class="subtle">All questions are original. Use Random to get questions on demand.</p>
 
-<h1>Free SAT Practice</h1>
+  <div class="card">
+    <div class="row">
+      <label><strong>Topic:</strong></label>
+      <select id="topicSelect"></select>
 
-<div class="card">
-  <div class="row">
-    <select id="sectionSelect"></select>
-    <select id="questionSelect"></select>
-    <button id="nextBtn">Next</button>
-    <button id="randomBtn">Random</button>
-    <button id="resetScoreBtn">Reset Score</button>
+      <button id="randomBtn" type="button">Random Question</button>
+      <button id="resetAskedBtn" type="button">Reset “Asked”</button>
+      <button id="resetScoreBtn" type="button">Reset Score</button>
+    </div>
+
+    <div class="scoreBox">
+      <div class="scoreLine">
+        <div><strong>Score:</strong> <span id="scoreText">0 / 0</span></div>
+        <div><strong>Accuracy:</strong> <span id="accuracyText">0%</span></div>
+        <div><strong>Bank size:</strong> <span id="bankSizeText">0</span></div>
+      </div>
+      <div class="scoreLine" style="margin-top:6px;">
+        <div><strong>Asked (this session):</strong> <span id="askedText">0</span></div>
+        <div><span class="pill" id="currentTopicPill">Topic: —</span></div>
+      </div>
+    </div>
+
+    <p class="question" id="questionText"></p>
+    <div class="choices" id="choices"></div>
+    <div class="result" id="result"></div>
   </div>
 
-  <p><strong>Score:</strong> <span id="scoreText">0 / 0</span></p>
-
-  <p id="questionText"></p>
-  <div class="choices" id="choices"></div>
-  <div class="result" id="result"></div>
-</div>
-
-<!-- AI QUESTION GENERATOR -->
-<div class="aiBox">
-  <h3>🤖 AI Question Generator</h3>
-  <p>Generate a new SAT-style math question instantly.</p>
-  <button onclick="generateAIQuestion()">Generate New Math Question</button>
-</div>
-
-<div class="footer">
-SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
-</div>
+  <div class="footer">
+    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
+  </div>
 
 <script>
-/* ------------------ QUESTION BANK ------------------ */
-const bank = {
-
-"Math (Additional Topics)": [
- {title:"AT1",question:"What is the area of a rectangle with length 8 and width 5?",choices:[{key:"A",text:"13"},{key:"B",text:"20"},{key:"C",text:"40"},{key:"D",text:"80"}],answer:"C",explanation:"Area = length × width = 8 × 5 = 40"},
- {title:"AT2",question:"A circle has radius 7. What is its circumference? (Use π ≈ 3.14)",choices:[{key:"A",text:"21.98"},{key:"B",text:"43.96"},{key:"C",text:"49"},{key:"D",text:"153.86"}],answer:"B",explanation:"Circumference = 2πr = 2 × 3.14 × 7 = 43.96"},
- {title:"AT3",question:"What is sin(30°)?",choices:[{key:"A",text:"1"},{key:"B",text:"√3/2"},{key:"C",text:"1/2"},{key:"D",text:"0"}],answer:"C",explanation:"sin(30°) = 1/2"},
- {title:"AT4",question:"What is cos(60°)?",choices:[{key:"A",text:"1/2"},{key:"B",text:"√3/2"},{key:"C",text:"1"},{key:"D",text:"0"}],answer:"A",explanation:"cos(60°) = 1/2"},
- {title:"AT5",question:"The sum of the interior angles of a triangle is:",choices:[{key:"A",text:"90°"},{key:"B",text:"180°"},{key:"C",text:"270°"},{key:"D",text:"360°"}],answer:"B",explanation:"All triangles sum to 180°"},
- {title:"AT6",question:"What is the volume of a cube with side length 4?",choices:[{key:"A",text:"16"},{key:"B",text:"32"},{key:"C",text:"48"},{key:"D",text:"64"}],answer:"D",explanation:"Volume = s³ = 4³ = 64"},
- {title:"AT7",question:"Which angle measure is complementary to 35°?",choices:[{key:"A",text:"55°"},{key:"B",text:"65°"},{key:"C",text:"145°"},{key:"D",text:"35°"}],answer:"A",explanation:"Complementary angles sum to 90° → 90 − 35 = 55"},
- {title:"AT8",question:"Simplify: i²",choices:[{key:"A",text:"1"},{key:"B",text:"−1"},{key:"C",text:"i"},{key:"D",text:"−i"}],answer:"B",explanation:"By definition, i² = −1"},
- {title:"AT9",question:"What is |−6|?",choices:[{key:"A",text:"−6"},{key:"B",text:"6"},{key:"C",text:"0"},{key:"D",text:"12"}],answer:"B",explanation:"Absolute value removes the sign"},
- {title:"AT10",question:"A right triangle has legs 3 and 4. What is the hypotenuse?",choices:[{key:"A",text:"5"},{key:"B",text:"6"},{key:"C",text:"7"},{key:"D",text:"25"}],answer:"A",explanation:"3² + 4² = 9 + 16 = 25 → √25 = 5"}
-]
-
-};
-
-/* ------------------ STATE ------------------ */
-let score = 0;
-let attempts = 0;
-
-/* ------------------ DOM ------------------ */
-const sectionSelect = document.getElementById("sectionSelect");
-const questionSelect = document.getElementById("questionSelect");
-const questionText = document.getElementById("questionText");
-const choices = document.getElementById("choices");
-const result = document.getElementById("result");
-const scoreText = document.getElementById("scoreText");
-
-/* ------------------ FUNCTIONS ------------------ */
-function loadSections(){
-  sectionSelect.innerHTML="";
-  Object.keys(bank).forEach(s=>{
-    const o=document.createElement("option");
-    o.value=s;o.textContent=s;
-    sectionSelect.appendChild(o);
-  });
+/* =========================
+   Utilities
+========================= */
+function randInt(min, max) { // inclusive
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-function loadQuestions(){
-  questionSelect.innerHTML="";
-  bank[sectionSelect.value].forEach((q,i)=>{
-    const o=document.createElement("option");
-    o.value=i;o.textContent=q.title;
-    questionSelect.appendChild(o);
-  });
-  render();
-}
-
-function render(){
-  const q=bank[sectionSelect.value][questionSelect.value];
-  questionText.textContent=q.question;
-  choices.innerHTML="";
-  result.style.display="none";
-  q.choices.forEach(c=>{
-    const b=document.createElement("button");
-    b.textContent=`${c.key}) ${c.text}`;
-    b.onclick=()=>check(c.key,q);
-    choices.appendChild(b);
-  });
-}
-
-function check(k,q){
-  attempts++;
-  if(k===q.answer){
-    score++;
-    result.className="result correct";
-  } else {
-    result.className="result incorrect";
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  scoreText.textContent=`${score} / ${attempts}`;
-  result.style.display="block";
-  result.textContent=`Correct Answer: ${q.answer}\n${q.explanation}`;
+  return arr;
 }
-
-/* ------------------ AI QUESTION GENERATOR ------------------ */
-function generateAIQuestion(){
-  const a = Math.floor(Math.random()*10)+1;
-  const b = Math.floor(Math.random()*10)+1;
-  const correct = a*a + b*b;
-  const q = {
-    title: "AI-Generated",
-    question: `A right triangle has legs ${a} and ${b}. What is the square of the hypotenuse?`,
-    choices: [
-      {key:"A",text:String(correct)},
-      {key:"B",text:String(correct+5)},
-      {key:"C",text:String(correct-4)},
-      {key:"D",text:String(a+b)}
-    ],
-    answer:"A",
-    explanation:`By the Pythagorean theorem: a² + b² = ${a*a} + ${b*b} = ${correct}`
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
+function formatFrac(n,d){
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(n,d);
+  n/=g; d/=g;
+  if (d === 1) return String(n);
+  return `${n}/${d}`;
+}
+function percent(correct, attempts){
+  if (attempts === 0) return "0%";
+  return Math.round((correct/attempts)*100) + "%";
+}
+function makeMCQ({topic, question, correctValue, distractors, explanation}) {
+  // Build A-D with shuffling
+  const all = [correctValue, ...distractors];
+  const unique = [];
+  for (const v of all) {
+    if (!unique.includes(v)) unique.push(v);
+  }
+  while (unique.length < 4) unique.push(String(randInt(1, 50))); // fallback
+  const choices = unique.slice(0,4).map(String);
+  shuffle(choices);
+  const letters = ["A","B","C","D"];
+  const choiceObjs = choices.map((t,i)=>({ key: letters[i], text: t }));
+  const answerKey = letters[choices.indexOf(String(correctValue))];
+  return {
+    topic,
+    question,
+    choices: choiceObjs,
+    answer: answerKey,
+    explanation
   };
-  bank["Math (Additional Topics)"].push(q);
-  loadQuestions();
-  questionSelect.value = bank["Math (Additional Topics)"].length - 1;
-  render();
 }
 
-/* ------------------ BUTTONS ------------------ */
-document.getElementById("nextBtn").onclick=()=>{
-  questionSelect.value=(+questionSelect.value+1)%bank[sectionSelect.value].length;
-  render();
-};
-document.getElementById("randomBtn").onclick=()=>{
-  questionSelect.value=Math.floor(Math.random()*bank[sectionSelect.value].length);
-  render();
-};
-document.getElementById("resetScoreBtn").onclick=()=>{
-  score=0;attempts=0;scoreText.textContent="0 / 0";
-};
+/* =========================
+   Question Bank (~100)
+   Topics:
+   - Algebra
+   - PSDA
+   - Advanced (Passport)
+   - Additional (Geo/Trig/Complex)
+========================= */
+const TOPICS = ["All", "Algebra", "PSDA", "Advanced", "Additional"];
+const bank = [];
 
-sectionSelect.onchange=loadQuestions;
-questionSelect.onchange=render;
+function seedHandcrafted() {
+  // A few solid “anchor” questions per topic (original)
+  bank.push(
+    makeMCQ({
+      topic:"Algebra",
+      question:"Solve for x:\n2x + 7 = 19",
+      correctValue:"6",
+      distractors:["5","7","12"],
+      explanation:"2x = 12 ⇒ x = 6."
+    }),
+    makeMCQ({
+      topic:"PSDA",
+      question:"A store reduces a $80 item by 15%. What is the sale price?",
+      correctValue:"68",
+      distractors:["12","72","92"],
+      explanation:"15% of 80 is 12. Sale price = 80 − 12 = 68."
+    }),
+    makeMCQ({
+      topic:"Advanced",
+      question:"Solve for x:\nx^2 - 16 = 0",
+      correctValue:"x = 4 or x = -4",
+      distractors:["x = 8","x = 16","x = -16"],
+      explanation:"x^2 = 16 ⇒ x = ±4."
+    }),
+    makeMCQ({
+      topic:"Additional",
+      question:"A right triangle has legs 6 and 8. What is the hypotenuse?",
+      correctValue:"10",
+      distractors:["14","48","7"],
+      explanation:"6^2 + 8^2 = 36 + 64 = 100 ⇒ hypotenuse = √100 = 10."
+    })
+  );
+}
 
-/* ------------------ INIT ------------------ */
-loadSections();
-loadQuestions();
+function generateAlgebra(n) {
+  for (let i=0;i<n;i++){
+    const a = randInt(2, 9);
+    const x = randInt(-8, 12);
+    const b = randInt(-20, 20);
+    const c = a*x + b;
+    const q = `Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`;
+    const correct = String(x);
+    const d1 = String(x + randInt(1,4));
+    const d2 = String(x - randInt(1,4));
+    const d3 = String(c); // common trap
+    bank.push(makeMCQ({
+      topic:"Algebra",
+      question:q,
+      correctValue:correct,
+      distractors:[d1,d2,d3],
+      explanation:`Subtract ${b} from both sides: ${a}x = ${c - b}. Divide by ${a}: x = ${x}.`
+    }));
+  }
+}
+
+function generateSystems(n) {
+  for (let i=0;i<n;i++){
+    const x = randInt(-5, 8);
+    const y = randInt(-5, 8);
+    const a1 = randInt(1,4), b1 = randInt(1,4);
+    const a2 = randInt(1,4), b2 = randInt(1,4);
+    // ensure not proportional
+    if (a1*b2 === a2*b1) { i--; continue; }
+    const c1 = a1*x + b1*y;
+    const c2 = a2*x + b2*y;
+    const q = `Solve the system:\n${a1}x + ${b1}y = ${c1}\n${a2}x + ${b2}y = ${c2}\nWhat is x?`;
+    const correct = String(x);
+    bank.push(makeMCQ({
+      topic:"Advanced",
+      question:q,
+      correctValue:correct,
+      distractors:[String(y), String(x+2), String(x-3)],
+      explanation:`The solution to the system is (x, y) = (${x}, ${y}), so x = ${x}.`
+    }));
+  }
+}
+
+function generateQuadratics(n) {
+  for (let i=0;i<n;i++){
+    const r1 = randInt(-8,8);
+    const r2 = randInt(-8,8);
+    if (r1 === 0 && r2 === 0) { i--; continue; }
+    const b = -(r1 + r2);
+    const c = r1*r2;
+    const q = `Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`;
+    const correct = `x = ${r1} or x = ${r2}`;
+    bank.push(makeMCQ({
+      topic:"Advanced",
+      question:q,
+      correctValue:correct,
+      distractors:[
+        `x = ${-r1} or x = ${-r2}`,
+        `x = ${r1 + r2}`,
+        `x = ${c}`
+      ],
+      explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
+    }));
+  }
+}
+
+function generateRationals(n) {
+  for (let i=0;i<n;i++){
+    const x = randInt(-8, 10);
+    const p = randInt(-5,5);
+    const q = randInt(-5,5);
+    const r = randInt(1,4);
+    // equation: (x+p)/(x+q) = r
+    // Solve: x+p = r(x+q) => x+p = rx + rq => p - rq = (r-1)x => x = (p-rq)/(r-1)
+    // pick x first by constructing p to make integer solution
+    const denom = (r-1);
+    const rq = r*q;
+    const pMade = rq + denom*x;
+    const question = `Solve for x:\n(x ${pMade>=0?"+":"-"} ${Math.abs(pMade)}) / (x ${q>=0?"+":"-"} ${Math.abs(q)}) = ${r}`;
+    const correct = String(x);
+    bank.push(makeMCQ({
+      topic:"Advanced",
+      question,
+      correctValue:correct,
+      distractors:[String(x+1), String(x-2), String(q)], // common traps
+      explanation:`Cross-multiply: x ${pMade>=0?"+":"-"} ${Math.abs(pMade)} = ${r}(x ${q>=0?"+":"-"} ${Math.abs(q)}). Solve to get x = ${x}. (Also require x ≠ ${-q}.)`
+    }));
+  }
+}
+
+function generatePSDA(n) {
+  const types = ["percent","ratio","mean","prob","unitrate"];
+  for (let i=0;i<n;i++){
+    const t = types[randInt(0, types.length-1)];
+    if (t === "percent") {
+      const price = randInt(20, 200);
+      const pct = [10,12,15,20,25,30][randInt(0,5)];
+      const disc = Math.round(price * pct / 100);
+      const sale = price - disc;
+      bank.push(makeMCQ({
+        topic:"PSDA",
+        question:`A ${pct}% discount is applied to a $${price} item. What is the sale price?`,
+        correctValue:String(sale),
+        distractors:[String(disc), String(price+disc), String(price - Math.round(disc/2))],
+        explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale price = ${price} − ${disc} = ${sale}.`
+      }));
+    } else if (t === "ratio") {
+      const a = randInt(2,9), b = randInt(2,9);
+      const scale = randInt(2,6);
+      const targetA = a*scale;
+      const targetB = b*scale;
+      bank.push(makeMCQ({
+        topic:"PSDA",
+        question:`The ratio of red to blue tiles is ${a}:${b}. If there are ${targetA} red tiles, how many blue tiles are there?`,
+        correctValue:String(targetB),
+        distractors:[String(b), String(targetA+targetB), String(targetA-targetB)],
+        explanation:`Scale factor = ${targetA}/${a} = ${scale}. Blue tiles = ${b}×${scale} = ${targetB}.`
+      }));
+    } else if (t === "mean") {
+      const nNums = 5;
+      const nums = Array.from({length:nNums-1}, ()=>randInt(4, 20));
+      const mean = randInt(8, 18);
+      const total = mean*nNums;
+      const sumKnown = nums.reduce((s,v)=>s+v,0);
+      const last = total - sumKnown;
+      bank.push(makeMCQ({
+        topic:"PSDA",
+        question:`The mean of 5 numbers is ${mean}. Four of the numbers are ${nums.join(", ")}. What is the fifth number?`,
+        correctValue:String(last),
+        distractors:[String(mean), String(total), String(sumKnown)],
+        explanation:`Total sum = mean×5 = ${mean}×5 = ${total}. Fifth = ${total} − ${sumKnown} = ${last}.`
+      }));
+    } else if (t === "prob") {
+      const red = randInt(2,8);
+      const blue = randInt(2,8);
+      const total = red + blue;
+      bank.push(makeMCQ({
+        topic:"PSDA",
+        question:`A bag has ${red} red and ${blue} blue marbles. What is the probability of choosing a blue marble?`,
+        correctValue:formatFrac(blue, total),
+        distractors:[formatFrac(red,total), formatFrac(blue,red), formatFrac(1,total)],
+        explanation:`Probability = favorable/total = ${blue}/${total} = ${formatFrac(blue,total)}.`
+      }));
+    } else { // unitrate
+      const miles = randInt(60, 240);
+      const hours = randInt(2, 6);
+      const speed = miles / hours;
+      if (!Number.isInteger(speed)) { i--; continue; }
+      const hours2 = randInt(4, 8);
+      const miles2 = speed * hours2;
+      bank.push(makeMCQ({
+        topic:"PSDA",
+        question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${hours2} hours?`,
+        correctValue:String(miles2),
+        distractors:[String(speed), String(miles + miles2), String(miles2 - speed)],
+        explanation:`Speed = ${miles}/${hours} = ${speed} mph. Distance in ${hours2} hours = ${speed}×${hours2} = ${miles2}.`
+      }));
+    }
+  }
+}
+
+function generateAdditional(n) {
+  const types = ["areaRect","circ","volumeCube","anglesTri","trig","complex"];
+  for (let i=0;i<n;i++){
+    const t = types[randInt(0, types.length-1)];
+    if (t === "areaRect") {
+      const L = randInt(3, 20), W = randInt(3, 20);
+      bank.push(makeMCQ({
+        topic:"Additional",
+        question:`What is the area of a rectangle with length ${L} and width ${W}?`,
+        correctValue:String(L*W),
+        distractors:[String(L+W), String(2*(L+W)), String(L*W*2)],
+        explanation:`Area = L×W = ${L}×${W} = ${L*W}.`
+      }));
+    } else if (t === "circ") {
+      const r = randInt(2, 12);
+      const val = (2*3.14*r).toFixed(2);
+      bank.push(makeMCQ({
+        topic:"Additional",
+        question:`A circle has radius ${r}. What is its circumference? (Use π ≈ 3.14)`,
+        correctValue:String(val),
+        distractors:[String((3.14*r*r).toFixed(2)), String((2*r).toFixed(2)), String((3.14*r).toFixed(2))],
+        explanation:`Circumference = 2πr = 2×3.14×${r} = ${val}.`
+      }));
+    } else if (t === "volumeCube") {
+      const s = randInt(2, 10);
+      bank.push(makeMCQ({
+        topic:"Additional",
+        question:`What is the volume of a cube with side length ${s}?`,
+        correctValue:String(s**3),
+        distractors:[String(s**2), String(6*s**2), String(3*s)],
+        explanation:`Volume of a cube = s³ = ${s}³ = ${s**3}.`
+      }));
+    } else if (t === "anglesTri") {
+      const a = randInt(20, 80);
+      const b = randInt(20, 80);
+      if (a + b >= 170) { i--; continue; }
+      const c = 180 - a - b;
+      bank.push(makeMCQ({
+        topic:"Additional",
+        question:`Two angles in a triangle measure ${a}° and ${b}°. What is the third angle?`,
+        correctValue:String(c),
+        distractors:[String(a+b), String(180-(a+b)/2), String(90)],
+        explanation:`Triangle angles sum to 180°. Third = 180 − ${a} − ${b} = ${c}.`
+      }));
+    } else if (t === "trig") {
+      const angle = [30,45,60][randInt(0,2)];
+      const func = ["sin","cos"][randInt(0,1)];
+      let correct;
+      if (func==="sin" && angle===30) correct="1/2";
+      if (func==="sin" && angle===45) correct="√2/2";
+      if (func==="sin" && angle===60) correct="√3/2";
+      if (func==="cos" && angle===30) correct="√3/2";
+      if (func==="cos" && angle===45) correct="√2/2";
+      if (func==="cos" && angle===60) correct="1/2";
+      const distractors = ["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
+      shuffle(distractors);
+      bank.push(makeMCQ({
+        topic:"Additional",
+        question:`What is ${func}(${angle}°)?`,
+        correctValue:correct,
+        distractors:distractors.slice(0,3),
+        explanation:`Special-angle value: ${func}(${angle}°) = ${correct}.`
+      }));
+    } else { // complex
+      const kind = randInt(1,3);
+      if (kind===1) {
+        bank.push(makeMCQ({
+          topic:"Additional",
+          question:"Simplify: i^2",
+          correctValue:"-1",
+          distractors:["1","i","-i"],
+          explanation:"By definition, i^2 = −1."
+        }));
+      } else if (kind===2) {
+        bank.push(makeMCQ({
+          topic:"Additional",
+          question:"Simplify: i^4",
+          correctValue:"1",
+          distractors:["-1","i","-i"],
+          explanation:"i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1."
+        }));
+      } else {
+        const a = randInt(1,9), b = randInt(1,9);
+        // (a+bi)+(a-bi)=2a
+        bank.push(makeMCQ({
+          topic:"Additional",
+          question:`Simplify: (${a} + ${b}i) + (${a} - ${b}i)`,
+          correctValue:String(2*a),
+          distractors:[`${2*a}i`, `${a} + ${b}i`, `${a} - ${b}i`],
+          explanation:`The imaginary parts cancel: +${b}i and −${b}i ⇒ 0. Result = ${a}+${a} = ${2*a}.`
+        }));
+      }
+    }
+  }
+}
+
+/* Build ~100 questions */
+function buildBank() {
+  bank.length = 0;
+  seedHandcrafted();
+
+  generateAlgebra(24);     // ~24
+  generatePSDA(24);        // ~24
+  generateQuadratics(16);  // ~16
+  generateRationals(12);   // ~12
+  generateSystems(10);     // ~10
+  generateAdditional(16);  // ~16
+
+  // That totals roughly: 4 + 24+24+16+12+10+16 = 106 (some duplicates can collapse to 100-ish)
+  // Remove accidental duplicates by question text
+  const seen = new Set();
+  const filtered = [];
+  for (const q of bank) {
+    const key = q.topic + "||" + q.question;
+    if (!seen.has(key)) { seen.add(key); filtered.push(q); }
+  }
+  bank.length = 0;
+  bank.push(...filtered);
+
+  // If we ended up slightly above 100, trim a bit (still ~100)
+  while (bank.length > 100) bank.pop();
+}
+
+/* =========================
+   App State
+========================= */
+let totalCorrect = 0;
+let totalAttempts = 0;
+let askedSet = new Set();
+let currentQuestion = null;
+
+/* =========================
+   DOM
+========================= */
+const topicSelectEl = document.getElementById("topicSelect");
+const questionTextEl = document.getElementById("questionText");
+const choicesEl = document.getElementById("choices");
+const resultEl = document.getElementById("result");
+
+const scoreTextEl = document.getElementById("scoreText");
+const accuracyTextEl = document.getElementById("accuracyText");
+const bankSizeTextEl = document.getElementById("bankSizeText");
+const askedTextEl = document.getElementById("askedText");
+const currentTopicPillEl = document.getElementById("currentTopicPill");
+
+const randomBtn = document.getElementById("randomBtn");
+const resetAskedBtn = document.getElementById("resetAskedBtn");
+const resetScoreBtn = document.getElementById("resetScoreBtn");
+
+function populateTopics(){
+  topicSelectEl.innerHTML = "";
+  TOPICS.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t;
+    topicSelectEl.appendChild(opt);
+  });
+}
+
+function getFilteredQuestions(){
+  const t = topicSelectEl.value;
+  if (t === "All") return bank;
+  return bank.filter(q => q.topic === t);
+}
+
+function updateStatsUI(){
+  scoreTextEl.textContent = `${totalCorrect} / ${totalAttempts}`;
+  accuracyTextEl.textContent = percent(totalCorrect, totalAttempts);
+  bankSizeTextEl.textContent = String(bank.length);
+  askedTextEl.textContent = String(askedSet.size);
+}
+
+function disableChoices(disabled){
+  choicesEl.querySelectorAll("button").forEach(b => b.disabled = disabled);
+}
+
+function renderQuestion(q){
+  currentQuestion = q;
+  currentTopicPillEl.textContent = `Topic: ${q.topic}`;
+  questionTextEl.textContent = q.question;
+
+  resultEl.style.display = "none";
+  resultEl.classList.remove("correct","incorrect");
+  resultEl.textContent = "";
+
+  choicesEl.innerHTML = "";
+  q.choices.forEach(ch=>{
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "choiceBtn";
+    btn.textContent = `${ch.key}) ${ch.text}`;
+    btn.onclick = ()=>checkAnswer(ch.key);
+    choicesEl.appendChild(btn);
+  });
+
+  disableChoices(false);
+}
+
+function pickRandomQuestion(){
+  const pool = getFilteredQuestions();
+  if (pool.length === 0) return null;
+
+  // Prefer unasked first
+  const unasked = pool.filter(q => !askedSet.has(q.question));
+  const source = (unasked.length > 0) ? unasked : pool;
+  const q = source[randInt(0, source.length-1)];
+  askedSet.add(q.question);
+  updateStatsUI();
+  return q;
+}
+
+function checkAnswer(selectedKey){
+  if (!currentQuestion) return;
+  disableChoices(true);
+
+  totalAttempts += 1;
+  const isCorrect = selectedKey === currentQuestion.answer;
+  if (isCorrect) totalCorrect += 1;
+
+  updateStatsUI();
+
+  const correctChoice = currentQuestion.choices.find(c => c.key === currentQuestion.answer);
+  const correctText = correctChoice ? `${correctChoice.key}) ${correctChoice.text}` : currentQuestion.answer;
+
+  resultEl.style.display = "block";
+  resultEl.classList.add(isCorrect ? "correct" : "incorrect");
+  resultEl.textContent =
+    (isCorrect ? "✅ Correct!\n\n" : "❌ Not quite.\n\n") +
+    `Correct Answer: ${correctText}\n\n` +
+    `Explanation:\n${currentQuestion.explanation}`;
+}
+
+/* =========================
+   Events
+========================= */
+randomBtn.addEventListener("click", ()=>{
+  const q = pickRandomQuestion();
+  if (q) renderQuestion(q);
+});
+
+resetAskedBtn.addEventListener("click", ()=>{
+  askedSet = new Set();
+  updateStatsUI();
+});
+
+resetScoreBtn.addEventListener("click", ()=>{
+  totalCorrect = 0;
+  totalAttempts = 0;
+  updateStatsUI();
+});
+
+topicSelectEl.addEventListener("change", ()=>{
+  // When changing topic, immediately serve a random question from that topic
+  const q = pickRandomQuestion();
+  if (q) renderQuestion(q);
+});
+
+/* =========================
+   Init
+========================= */
+buildBank();
+populateTopics();
+updateStatsUI();
+
+// Start with an initial random question
+const first = pickRandomQuestion();
+if (first) renderQuestion(first);
 </script>
-
 </body>
 </html>

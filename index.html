@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Free SAT Algebra Practice</title>
+  <title>Free SAT Practice</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 780px;
+      max-width: 820px;
       margin: 0 auto;
       padding: 24px;
       line-height: 1.5;
@@ -33,10 +33,9 @@
       border: 1px solid #ccc;
       background: #fff;
     }
-    button {
-      cursor: pointer;
-    }
+    button { cursor: pointer; }
     button:hover { background: #f6f6f6; }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
     .choices {
       margin-top: 14px;
       display: grid;
@@ -52,6 +51,15 @@
       font-size: 18px;
       margin: 12px 0 0;
     }
+    .passage {
+      white-space: pre-wrap;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 12px;
+      display: none;
+    }
     .result {
       margin-top: 14px;
       padding: 12px;
@@ -59,9 +67,23 @@
       border: 1px solid #ddd;
       background: #fafafa;
       white-space: pre-wrap;
+      display:none;
     }
     .correct { border-color: #2e7d32; background: #eef8ef; }
     .incorrect { border-color: #c62828; background: #fdeeee; }
+    .scoreBox {
+      margin-top: 12px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 12px;
+      background: #fbfbfb;
+    }
+    .scoreLine {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     .footer {
       margin-top: 28px;
       font-size: 12px;
@@ -72,22 +94,38 @@
   </style>
 </head>
 <body>
-  <h1>Free SAT Algebra Practice</h1>
-  <p class="subtle">Pick a question, choose an answer, and get instant feedback + explanation.</p>
+  <h1>Free SAT Practice</h1>
+  <p class="subtle">Choose a section, pick a question, answer, and track your score.</p>
 
   <div class="card">
     <div class="row">
-      <label for="questionSelect"><strong>Choose a question:</strong></label>
+      <label for="sectionSelect"><strong>Section:</strong></label>
+      <select id="sectionSelect"></select>
+
+      <label for="questionSelect"><strong>Question:</strong></label>
       <select id="questionSelect"></select>
+
       <button id="nextBtn" type="button">Next</button>
       <button id="randomBtn" type="button">Random</button>
+      <button id="resetScoreBtn" type="button">Reset Score</button>
     </div>
 
+    <div class="scoreBox">
+      <div class="scoreLine">
+        <div><strong>Score:</strong> <span id="scoreText">0 / 0</span></div>
+        <div><strong>Accuracy:</strong> <span id="accuracyText">0%</span></div>
+      </div>
+      <div class="scoreLine" style="margin-top:6px;">
+        <div><strong>Current Section:</strong> <span id="sectionScoreText">0 / 0</span></div>
+        <div><strong>Section Accuracy:</strong> <span id="sectionAccuracyText">0%</span></div>
+      </div>
+    </div>
+
+    <div id="passage" class="passage"></div>
     <p id="questionText" class="questionText"></p>
 
     <div id="choices" class="choices"></div>
-
-    <div id="result" class="result" style="display:none;"></div>
+    <div id="result" class="result"></div>
   </div>
 
   <div class="footer">
@@ -96,192 +134,332 @@
   </div>
 
   <script>
-    const questions = [
-      {
-        id: 1,
-        title: "Question 1",
-        question: "If x + 7 = 15, what is the value of x?",
-        choices: [
-          { key: "A", text: "6" },
-          { key: "B", text: "7" },
-          { key: "C", text: "8" },
-          { key: "D", text: "22" }
-        ],
-        answer: "C",
-        explanation: "Subtract 7 from both sides:\n x = 15 - 7 = 8"
-      },
-      {
-        id: 2,
-        title: "Question 2",
-        question: "Solve for y:\n4y = 20",
-        choices: [
-          { key: "A", text: "4" },
-          { key: "B", text: "5" },
-          { key: "C", text: "10" },
-          { key: "D", text: "16" }
-        ],
-        answer: "B",
-        explanation: "Divide both sides by 4:\n y = 20 ÷ 4 = 5"
-      },
-      {
-        id: 3,
-        title: "Question 3",
-        question: "If 3x - 5 = 10, what is x?",
-        choices: [
-          { key: "A", text: "3" },
-          { key: "B", text: "5" },
-          { key: "C", text: "10" },
-          { key: "D", text: "15" }
-        ],
-        answer: "B",
-        explanation: "Add 5 to both sides: 3x = 15\nDivide by 3: x = 5"
-      },
-      {
-        id: 4,
-        title: "Question 4",
-        question: "Which expression is equivalent to 2(x + 4)?",
-        choices: [
-          { key: "A", text: "2x + 4" },
-          { key: "B", text: "2x + 6" },
-          { key: "C", text: "2x + 8" },
-          { key: "D", text: "x + 8" }
-        ],
-        answer: "C",
-        explanation: "Distribute the 2:\n 2(x + 4) = 2x + 8"
-      },
-      {
-        id: 5,
-        title: "Question 5",
-        question: "If x/5 = 6, what is x?",
-        choices: [
-          { key: "A", text: "11" },
-          { key: "B", text: "30" },
-          { key: "C", text: "35" },
-          { key: "D", text: "60" }
-        ],
-        answer: "B",
-        explanation: "Multiply both sides by 5:\n x = 6 × 5 = 30"
-      },
-      {
-        id: 6,
-        title: "Question 6",
-        question: "Solve:\nx + x = 14",
-        choices: [
-          { key: "A", text: "6" },
-          { key: "B", text: "7" },
-          { key: "C", text: "14" },
-          { key: "D", text: "28" }
-        ],
-        answer: "B",
-        explanation: "Combine like terms:\n 2x = 14\nDivide by 2:\n x = 7"
-      },
-      {
-        id: 7,
-        title: "Question 7",
-        question: "If 5x = 25, what is the value of 2x?",
-        choices: [
-          { key: "A", text: "5" },
-          { key: "B", text: "10" },
-          { key: "C", text: "25" },
-          { key: "D", text: "50" }
-        ],
-        answer: "B",
-        explanation: "First solve for x:\n x = 25 ÷ 5 = 5\nThen compute 2x:\n 2x = 2 × 5 = 10"
-      },
-      {
-        id: 8,
-        title: "Question 8",
-        question: "Which value of x satisfies x - 9 = 3?",
-        choices: [
-          { key: "A", text: "6" },
-          { key: "B", text: "9" },
-          { key: "C", text: "12" },
-          { key: "D", text: "27" }
-        ],
-        answer: "C",
-        explanation: "Add 9 to both sides:\n x = 3 + 9 = 12"
-      },
-      {
-        id: 9,
-        title: "Question 9",
-        question: "If 7 + 2x = 13, what is x?",
-        choices: [
-          { key: "A", text: "2" },
-          { key: "B", text: "3" },
-          { key: "C", text: "6" },
-          { key: "D", text: "10" }
-        ],
-        answer: "A",
-        explanation: "Subtract 7:\n 2x = 6\nDivide by 2:\n x = 3\n\nWait—check carefully:\n7 + 2x = 13 → 2x = 6 → x = 3\nSo the correct answer is actually B) 3."
-      },
-      {
-        id: 10,
-        title: "Question 10",
-        question: "Which equation has the solution x = 4?",
-        choices: [
-          { key: "A", text: "x + 3 = 6" },
-          { key: "B", text: "2x = 8" },
-          { key: "C", text: "x - 5 = 1" },
-          { key: "D", text: "3x = 15" }
-        ],
-        answer: "B",
-        explanation: "Test x = 4:\n2x = 2(4) = 8, so 2x = 8 is true."
+    // -------------------------
+    // QUESTION BANK (ORIGINAL)
+    // -------------------------
+    const bank = {
+      "Math (Algebra)": [
+        {
+          title: "Math Q1",
+          passage: "",
+          question: "If x + 7 = 15, what is the value of x?",
+          choices: [
+            { key: "A", text: "6" },
+            { key: "B", text: "7" },
+            { key: "C", text: "8" },
+            { key: "D", text: "22" }
+          ],
+          answer: "C",
+          explanation: "Subtract 7 from both sides:\n x = 15 - 7 = 8"
+        },
+        {
+          title: "Math Q2",
+          passage: "",
+          question: "Solve for y:\n4y = 20",
+          choices: [
+            { key: "A", text: "4" },
+            { key: "B", text: "5" },
+            { key: "C", text: "10" },
+            { key: "D", text: "16" }
+          ],
+          answer: "B",
+          explanation: "Divide both sides by 4:\n y = 20 ÷ 4 = 5"
+        },
+        {
+          title: "Math Q3",
+          passage: "",
+          question: "If 3x - 5 = 10, what is x?",
+          choices: [
+            { key: "A", text: "3" },
+            { key: "B", text: "5" },
+            { key: "C", text: "10" },
+            { key: "D", text: "15" }
+          ],
+          answer: "B",
+          explanation: "Add 5 to both sides: 3x = 15\nDivide by 3: x = 5"
+        },
+        {
+          title: "Math Q4",
+          passage: "",
+          question: "Which expression is equivalent to 2(x + 4)?",
+          choices: [
+            { key: "A", text: "2x + 4" },
+            { key: "B", text: "2x + 6" },
+            { key: "C", text: "2x + 8" },
+            { key: "D", text: "x + 8" }
+          ],
+          answer: "C",
+          explanation: "Distribute the 2:\n 2(x + 4) = 2x + 8"
+        },
+        {
+          title: "Math Q5",
+          passage: "",
+          question: "If x/5 = 6, what is x?",
+          choices: [
+            { key: "A", text: "11" },
+            { key: "B", text: "30" },
+            { key: "C", text: "35" },
+            { key: "D", text: "60" }
+          ],
+          answer: "B",
+          explanation: "Multiply both sides by 5:\n x = 6 × 5 = 30"
+        },
+        {
+          title: "Math Q6",
+          passage: "",
+          question: "Solve:\nx + x = 14",
+          choices: [
+            { key: "A", text: "6" },
+            { key: "B", text: "7" },
+            { key: "C", text: "14" },
+            { key: "D", text: "28" }
+          ],
+          answer: "B",
+          explanation: "Combine like terms:\n 2x = 14\nDivide by 2:\n x = 7"
+        },
+        {
+          title: "Math Q7",
+          passage: "",
+          question: "If 5x = 25, what is the value of 2x?",
+          choices: [
+            { key: "A", text: "5" },
+            { key: "B", text: "10" },
+            { key: "C", text: "25" },
+            { key: "D", text: "50" }
+          ],
+          answer: "B",
+          explanation: "First solve for x:\n x = 25 ÷ 5 = 5\nThen compute 2x:\n 2x = 2 × 5 = 10"
+        },
+        {
+          title: "Math Q8",
+          passage: "",
+          question: "Which value of x satisfies x - 9 = 3?",
+          choices: [
+            { key: "A", text: "6" },
+            { key: "B", text: "9" },
+            { key: "C", text: "12" },
+            { key: "D", text: "27" }
+          ],
+          answer: "C",
+          explanation: "Add 9 to both sides:\n x = 3 + 9 = 12"
+        },
+        {
+          title: "Math Q9",
+          passage: "",
+          question: "If 7 + 2x = 13, what is x?",
+          choices: [
+            { key: "A", text: "2" },
+            { key: "B", text: "3" },
+            { key: "C", text: "6" },
+            { key: "D", text: "10" }
+          ],
+          answer: "B",
+          explanation: "Subtract 7:\n 2x = 6\nDivide by 2:\n x = 3"
+        },
+        {
+          title: "Math Q10",
+          passage: "",
+          question: "Which equation has the solution x = 4?",
+          choices: [
+            { key: "A", text: "x + 3 = 6" },
+            { key: "B", text: "2x = 8" },
+            { key: "C", text: "x - 5 = 1" },
+            { key: "D", text: "3x = 15" }
+          ],
+          answer: "B",
+          explanation: "Test x = 4:\n2x = 2(4) = 8, so 2x = 8 is true."
+        }
+      ],
+
+      "Reading": [
+        {
+          title: "Reading Q1",
+          passage:
+`Passage:
+A community garden opened on a vacant lot near a busy street. At first, only a few neighbors visited. Over time, as vegetables began to grow, more people stopped by to water plants, pull weeds, and talk. Soon, the garden became a meeting place where residents shared recipes and planned neighborhood projects.`,
+          question: "Which choice best states the main idea of the passage?",
+          choices: [
+            { key: "A", text: "Community gardens are difficult to maintain without expert help." },
+            { key: "B", text: "A garden project helped strengthen connections among neighbors." },
+            { key: "C", text: "Vacant lots are the best locations for planting vegetables." },
+            { key: "D", text: "People prefer gardening to other neighborhood activities." }
+          ],
+          answer: "B",
+          explanation: "The passage focuses on how the garden gradually became a gathering place and improved community connections."
+        },
+        {
+          title: "Reading Q2",
+          passage:
+`Passage:
+When Maya started practicing the piano, she played each piece quickly to “get it right.” Her teacher suggested something different: slow practice, focusing on difficult measures. Maya tried it, and although it felt frustrating at first, she began making fewer mistakes and gained confidence.`,
+          question: "What does the passage suggest about Maya’s change in practice strategy?",
+          choices: [
+            { key: "A", text: "It made her practice sessions shorter but less effective." },
+            { key: "B", text: "It helped her improve by targeting challenging parts carefully." },
+            { key: "C", text: "It caused her to lose interest in learning new music." },
+            { key: "D", text: "It worked only because she practiced faster than before." }
+          ],
+          answer: "B",
+          explanation: "Slow practice let Maya focus on the hardest measures, leading to fewer mistakes and more confidence."
+        },
+        {
+          title: "Reading Q3",
+          passage:
+`Passage:
+A scientist recorded daily temperatures for a month. Instead of looking at every number separately, she calculated the average and noticed a steady increase near the end of the month. The average helped her summarize the data while still revealing a clear trend.`,
+          question: "In the passage, the average temperature is used mainly to",
+          choices: [
+            { key: "A", text: "replace all individual data points because they are unimportant." },
+            { key: "B", text: "summarize the data and help identify a pattern." },
+            { key: "C", text: "prove that temperatures never decrease during a month." },
+            { key: "D", text: "show that the scientist recorded temperatures incorrectly." }
+          ],
+          answer: "B",
+          explanation: "The passage says the average summarizes the data while still showing a trend (increase near month’s end)."
+        }
+      ]
+    };
+
+    // -------------------------
+    // STATE (SCORE)
+    // -------------------------
+    const score = {
+      totalCorrect: 0,
+      totalAttempts: 0,
+      perSection: {} // e.g., { "Math (Algebra)": {correct:0, attempts:0}, ... }
+    };
+
+    function ensureSectionScore(sectionName) {
+      if (!score.perSection[sectionName]) {
+        score.perSection[sectionName] = { correct: 0, attempts: 0 };
       }
-    ];
+    }
 
-    // NOTE: I caught a mistake in Q9 from earlier:
-    // 7 + 2x = 13 => x = 3, so the correct choice is B.
-    // Let's fix the data so your site stays correct.
-    questions.find(q => q.id === 9).answer = "B";
-    questions.find(q => q.id === 9).choices = [
-      { key: "A", text: "2" },
-      { key: "B", text: "3" },
-      { key: "C", text: "6" },
-      { key: "D", text: "10" }
-    ];
-    questions.find(q => q.id === 9).explanation =
-      "Subtract 7 from both sides:\n 2x = 6\nDivide by 2:\n x = 3";
-
-    const selectEl = document.getElementById("questionSelect");
+    // -------------------------
+    // DOM
+    // -------------------------
+    const sectionSelectEl = document.getElementById("sectionSelect");
+    const questionSelectEl = document.getElementById("questionSelect");
     const questionTextEl = document.getElementById("questionText");
+    const passageEl = document.getElementById("passage");
     const choicesEl = document.getElementById("choices");
     const resultEl = document.getElementById("result");
+
     const nextBtn = document.getElementById("nextBtn");
     const randomBtn = document.getElementById("randomBtn");
+    const resetScoreBtn = document.getElementById("resetScoreBtn");
 
-    function populateDropdown() {
-      selectEl.innerHTML = "";
-      questions.forEach((q, idx) => {
+    const scoreTextEl = document.getElementById("scoreText");
+    const accuracyTextEl = document.getElementById("accuracyText");
+    const sectionScoreTextEl = document.getElementById("sectionScoreText");
+    const sectionAccuracyTextEl = document.getElementById("sectionAccuracyText");
+
+    // Tracks if the current question has been answered (to prevent double-scoring)
+    let hasAnsweredCurrent = false;
+
+    // -------------------------
+    // UI HELPERS
+    // -------------------------
+    function percent(correct, attempts) {
+      if (attempts === 0) return "0%";
+      return Math.round((correct / attempts) * 100) + "%";
+    }
+
+    function updateScoreUI() {
+      const sectionName = sectionSelectEl.value;
+      ensureSectionScore(sectionName);
+
+      scoreTextEl.textContent = `${score.totalCorrect} / ${score.totalAttempts}`;
+      accuracyTextEl.textContent = percent(score.totalCorrect, score.totalAttempts);
+
+      const s = score.perSection[sectionName];
+      sectionScoreTextEl.textContent = `${s.correct} / ${s.attempts}`;
+      sectionAccuracyTextEl.textContent = percent(s.correct, s.attempts);
+    }
+
+    function populateSectionDropdown() {
+      sectionSelectEl.innerHTML = "";
+      Object.keys(bank).forEach(sectionName => {
         const opt = document.createElement("option");
-        opt.value = idx;
-        opt.textContent = `${q.title}`;
-        selectEl.appendChild(opt);
+        opt.value = sectionName;
+        opt.textContent = sectionName;
+        sectionSelectEl.appendChild(opt);
+        ensureSectionScore(sectionName);
       });
     }
 
-    function renderQuestion(index) {
-      const q = questions[index];
-      questionTextEl.textContent = q.question;
+    function populateQuestionDropdown(sectionName) {
+      const questions = bank[sectionName];
+      questionSelectEl.innerHTML = "";
+      questions.forEach((q, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = q.title;
+        questionSelectEl.appendChild(opt);
+      });
+    }
+
+    function disableChoiceButtons(disabled) {
+      const btns = choicesEl.querySelectorAll("button");
+      btns.forEach(b => b.disabled = disabled);
+    }
+
+    function renderQuestion(sectionName, index) {
+      const q = bank[sectionName][index];
+
+      hasAnsweredCurrent = false;
+      disableChoiceButtons(false);
 
       // reset result
       resultEl.style.display = "none";
       resultEl.classList.remove("correct", "incorrect");
       resultEl.textContent = "";
 
-      // render choices
+      // passage
+      if (q.passage && q.passage.trim().length > 0) {
+        passageEl.style.display = "block";
+        passageEl.textContent = q.passage;
+      } else {
+        passageEl.style.display = "none";
+        passageEl.textContent = "";
+      }
+
+      // question
+      questionTextEl.textContent = q.question;
+
+      // choices
       choicesEl.innerHTML = "";
       q.choices.forEach(choice => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "choiceBtn";
         btn.textContent = `${choice.key}) ${choice.text}`;
-        btn.onclick = () => checkAnswer(choice.key, q);
+        btn.onclick = () => checkAnswer(choice.key, q, sectionName);
         choicesEl.appendChild(btn);
       });
+
+      updateScoreUI();
     }
 
-    function checkAnswer(selectedKey, q) {
+    function checkAnswer(selectedKey, q, sectionName) {
+      if (hasAnsweredCurrent) return; // prevent double scoring
+      hasAnsweredCurrent = true;
+
       const isCorrect = selectedKey === q.answer;
+
+      // Update score
+      score.totalAttempts += 1;
+      ensureSectionScore(sectionName);
+      score.perSection[sectionName].attempts += 1;
+
+      if (isCorrect) {
+        score.totalCorrect += 1;
+        score.perSection[sectionName].correct += 1;
+      }
+
+      updateScoreUI();
+
+      // Show result
       resultEl.style.display = "block";
       resultEl.classList.remove("correct", "incorrect");
       resultEl.classList.add(isCorrect ? "correct" : "incorrect");
@@ -293,28 +471,60 @@
         (isCorrect ? "✅ Correct!\n\n" : "❌ Not quite.\n\n") +
         `Correct Answer: ${correctText}\n\n` +
         `Explanation:\n${q.explanation}`;
+
+      // Disable buttons after answering
+      disableChoiceButtons(true);
     }
 
     function goNext() {
-      const current = Number(selectEl.value);
-      const next = (current + 1) % questions.length;
-      selectEl.value = String(next);
-      renderQuestion(next);
+      const sectionName = sectionSelectEl.value;
+      const len = bank[sectionName].length;
+      const current = Number(questionSelectEl.value);
+      const next = (current + 1) % len;
+      questionSelectEl.value = String(next);
+      renderQuestion(sectionName, next);
     }
 
     function goRandom() {
-      const rand = Math.floor(Math.random() * questions.length);
-      selectEl.value = String(rand);
-      renderQuestion(rand);
+      const sectionName = sectionSelectEl.value;
+      const len = bank[sectionName].length;
+      const rand = Math.floor(Math.random() * len);
+      questionSelectEl.value = String(rand);
+      renderQuestion(sectionName, rand);
     }
 
-    // init
-    populateDropdown();
-    selectEl.addEventListener("change", () => renderQuestion(Number(selectEl.value)));
+    function resetScore() {
+      score.totalCorrect = 0;
+      score.totalAttempts = 0;
+      Object.keys(score.perSection).forEach(k => {
+        score.perSection[k].correct = 0;
+        score.perSection[k].attempts = 0;
+      });
+      updateScoreUI();
+      // keep current question on screen
+    }
+
+    // -------------------------
+    // INIT
+    // -------------------------
+    populateSectionDropdown();
+    populateQuestionDropdown(sectionSelectEl.value);
+
+    sectionSelectEl.addEventListener("change", () => {
+      populateQuestionDropdown(sectionSelectEl.value);
+      questionSelectEl.value = "0";
+      renderQuestion(sectionSelectEl.value, 0);
+    });
+
+    questionSelectEl.addEventListener("change", () => {
+      renderQuestion(sectionSelectEl.value, Number(questionSelectEl.value));
+    });
+
     nextBtn.addEventListener("click", goNext);
     randomBtn.addEventListener("click", goRandom);
+    resetScoreBtn.addEventListener("click", resetScore);
 
-    renderQuestion(0);
+    renderQuestion(sectionSelectEl.value, 0);
   </script>
 </body>
 </html>

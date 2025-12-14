@@ -1,46 +1,320 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <style>
-  body {
-    font-family: Arial;
-    max-width: 600px;
-    margin: auto;
-    padding: 20px;
-  }
-  button {
-    padding: 10px;
-    font-size: 16px;
-  }
-</style>
-  <title>Free SAT Practice</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Free SAT Algebra Practice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    h1 { margin-bottom: 8px; }
+    .subtle { color: #555; margin-top: 0; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    select, button {
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    button {
+      cursor: pointer;
+    }
+    button:hover { background: #f6f6f6; }
+    .choices {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .choiceBtn {
+      text-align: left;
+      width: 100%;
+    }
+    .questionText {
+      white-space: pre-wrap;
+      font-size: 18px;
+      margin: 12px 0 0;
+    }
+    .result {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      white-space: pre-wrap;
+    }
+    .correct { border-color: #2e7d32; background: #eef8ef; }
+    .incorrect { border-color: #c62828; background: #fdeeee; }
+    .footer {
+      margin-top: 28px;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #eee;
+      padding-top: 14px;
+    }
+  </style>
 </head>
 <body>
+  <h1>Free SAT Algebra Practice</h1>
+  <p class="subtle">Pick a question, choose an answer, and get instant feedback + explanation.</p>
 
-  <h1>Free SAT Practice Questions</h1>
-  <p>Click the button to get a practice question.</p>
+  <div class="card">
+    <div class="row">
+      <label for="questionSelect"><strong>Choose a question:</strong></label>
+      <select id="questionSelect"></select>
+      <button id="nextBtn" type="button">Next</button>
+      <button id="randomBtn" type="button">Random</button>
+    </div>
 
-  <button onclick="showQuestion()">Get Question</button>
+    <p id="questionText" class="questionText"></p>
 
-  <p id="question"></p>
-  <p id="answer"></p>
+    <div id="choices" class="choices"></div>
+
+    <div id="result" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="footer">
+    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
+    All questions on this page are original practice questions.
+  </div>
 
   <script>
-    function showQuestion() {
-      document.getElementById("question").innerText =
-        "If 3x + 5 = 20, what is the value of x?\nA) 3\nB) 5\nC) 7\nD) 10";
+    const questions = [
+      {
+        id: 1,
+        title: "Question 1",
+        question: "If x + 7 = 15, what is the value of x?",
+        choices: [
+          { key: "A", text: "6" },
+          { key: "B", text: "7" },
+          { key: "C", text: "8" },
+          { key: "D", text: "22" }
+        ],
+        answer: "C",
+        explanation: "Subtract 7 from both sides:\n x = 15 - 7 = 8"
+      },
+      {
+        id: 2,
+        title: "Question 2",
+        question: "Solve for y:\n4y = 20",
+        choices: [
+          { key: "A", text: "4" },
+          { key: "B", text: "5" },
+          { key: "C", text: "10" },
+          { key: "D", text: "16" }
+        ],
+        answer: "B",
+        explanation: "Divide both sides by 4:\n y = 20 ÷ 4 = 5"
+      },
+      {
+        id: 3,
+        title: "Question 3",
+        question: "If 3x - 5 = 10, what is x?",
+        choices: [
+          { key: "A", text: "3" },
+          { key: "B", text: "5" },
+          { key: "C", text: "10" },
+          { key: "D", text: "15" }
+        ],
+        answer: "B",
+        explanation: "Add 5 to both sides: 3x = 15\nDivide by 3: x = 5"
+      },
+      {
+        id: 4,
+        title: "Question 4",
+        question: "Which expression is equivalent to 2(x + 4)?",
+        choices: [
+          { key: "A", text: "2x + 4" },
+          { key: "B", text: "2x + 6" },
+          { key: "C", text: "2x + 8" },
+          { key: "D", text: "x + 8" }
+        ],
+        answer: "C",
+        explanation: "Distribute the 2:\n 2(x + 4) = 2x + 8"
+      },
+      {
+        id: 5,
+        title: "Question 5",
+        question: "If x/5 = 6, what is x?",
+        choices: [
+          { key: "A", text: "11" },
+          { key: "B", text: "30" },
+          { key: "C", text: "35" },
+          { key: "D", text: "60" }
+        ],
+        answer: "B",
+        explanation: "Multiply both sides by 5:\n x = 6 × 5 = 30"
+      },
+      {
+        id: 6,
+        title: "Question 6",
+        question: "Solve:\nx + x = 14",
+        choices: [
+          { key: "A", text: "6" },
+          { key: "B", text: "7" },
+          { key: "C", text: "14" },
+          { key: "D", text: "28" }
+        ],
+        answer: "B",
+        explanation: "Combine like terms:\n 2x = 14\nDivide by 2:\n x = 7"
+      },
+      {
+        id: 7,
+        title: "Question 7",
+        question: "If 5x = 25, what is the value of 2x?",
+        choices: [
+          { key: "A", text: "5" },
+          { key: "B", text: "10" },
+          { key: "C", text: "25" },
+          { key: "D", text: "50" }
+        ],
+        answer: "B",
+        explanation: "First solve for x:\n x = 25 ÷ 5 = 5\nThen compute 2x:\n 2x = 2 × 5 = 10"
+      },
+      {
+        id: 8,
+        title: "Question 8",
+        question: "Which value of x satisfies x - 9 = 3?",
+        choices: [
+          { key: "A", text: "6" },
+          { key: "B", text: "9" },
+          { key: "C", text: "12" },
+          { key: "D", text: "27" }
+        ],
+        answer: "C",
+        explanation: "Add 9 to both sides:\n x = 3 + 9 = 12"
+      },
+      {
+        id: 9,
+        title: "Question 9",
+        question: "If 7 + 2x = 13, what is x?",
+        choices: [
+          { key: "A", text: "2" },
+          { key: "B", text: "3" },
+          { key: "C", text: "6" },
+          { key: "D", text: "10" }
+        ],
+        answer: "A",
+        explanation: "Subtract 7:\n 2x = 6\nDivide by 2:\n x = 3\n\nWait—check carefully:\n7 + 2x = 13 → 2x = 6 → x = 3\nSo the correct answer is actually B) 3."
+      },
+      {
+        id: 10,
+        title: "Question 10",
+        question: "Which equation has the solution x = 4?",
+        choices: [
+          { key: "A", text: "x + 3 = 6" },
+          { key: "B", text: "2x = 8" },
+          { key: "C", text: "x - 5 = 1" },
+          { key: "D", text: "3x = 15" }
+        ],
+        answer: "B",
+        explanation: "Test x = 4:\n2x = 2(4) = 8, so 2x = 8 is true."
+      }
+    ];
 
-      document.getElementById("answer").innerText =
-        "Correct Answer: B) 5\nExplanation: Subtract 5 from both sides, then divide by 3.";
+    // NOTE: I caught a mistake in Q9 from earlier:
+    // 7 + 2x = 13 => x = 3, so the correct choice is B.
+    // Let's fix the data so your site stays correct.
+    questions.find(q => q.id === 9).answer = "B";
+    questions.find(q => q.id === 9).choices = [
+      { key: "A", text: "2" },
+      { key: "B", text: "3" },
+      { key: "C", text: "6" },
+      { key: "D", text: "10" }
+    ];
+    questions.find(q => q.id === 9).explanation =
+      "Subtract 7 from both sides:\n 2x = 6\nDivide by 2:\n x = 3";
+
+    const selectEl = document.getElementById("questionSelect");
+    const questionTextEl = document.getElementById("questionText");
+    const choicesEl = document.getElementById("choices");
+    const resultEl = document.getElementById("result");
+    const nextBtn = document.getElementById("nextBtn");
+    const randomBtn = document.getElementById("randomBtn");
+
+    function populateDropdown() {
+      selectEl.innerHTML = "";
+      questions.forEach((q, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = `${q.title}`;
+        selectEl.appendChild(opt);
+      });
     }
+
+    function renderQuestion(index) {
+      const q = questions[index];
+      questionTextEl.textContent = q.question;
+
+      // reset result
+      resultEl.style.display = "none";
+      resultEl.classList.remove("correct", "incorrect");
+      resultEl.textContent = "";
+
+      // render choices
+      choicesEl.innerHTML = "";
+      q.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choiceBtn";
+        btn.textContent = `${choice.key}) ${choice.text}`;
+        btn.onclick = () => checkAnswer(choice.key, q);
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selectedKey, q) {
+      const isCorrect = selectedKey === q.answer;
+      resultEl.style.display = "block";
+      resultEl.classList.remove("correct", "incorrect");
+      resultEl.classList.add(isCorrect ? "correct" : "incorrect");
+
+      const correctChoice = q.choices.find(c => c.key === q.answer);
+      const correctText = correctChoice ? `${q.answer}) ${correctChoice.text}` : q.answer;
+
+      resultEl.textContent =
+        (isCorrect ? "✅ Correct!\n\n" : "❌ Not quite.\n\n") +
+        `Correct Answer: ${correctText}\n\n` +
+        `Explanation:\n${q.explanation}`;
+    }
+
+    function goNext() {
+      const current = Number(selectEl.value);
+      const next = (current + 1) % questions.length;
+      selectEl.value = String(next);
+      renderQuestion(next);
+    }
+
+    function goRandom() {
+      const rand = Math.floor(Math.random() * questions.length);
+      selectEl.value = String(rand);
+      renderQuestion(rand);
+    }
+
+    // init
+    populateDropdown();
+    selectEl.addEventListener("change", () => renderQuestion(Number(selectEl.value)));
+    nextBtn.addEventListener("click", goNext);
+    randomBtn.addEventListener("click", goRandom);
+
+    renderQuestion(0);
   </script>
-
-  <hr>
-  <small>
-    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
-  </small>
-
 </body>
-
 </html>

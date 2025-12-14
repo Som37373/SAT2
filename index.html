@@ -42,10 +42,7 @@
       grid-template-columns: 1fr;
       gap: 10px;
     }
-    .choiceBtn {
-      text-align: left;
-      width: 100%;
-    }
+    .choiceBtn { text-align: left; width: 100%; }
     .questionText {
       white-space: pre-wrap;
       font-size: 18px;
@@ -138,144 +135,6 @@
     // QUESTION BANK (ORIGINAL)
     // -------------------------
     const bank = {
-      
-"Math (Problem Solving & Data Analysis)": [
-  {
-    title: "PSDA Q1",
-    passage: "",
-    question: "A store is having a 20% off sale. A jacket originally costs $60. What is the sale price?",
-    choices: [
-      { key: "A", text: "$12" },
-      { key: "B", text: "$40" },
-      { key: "C", text: "$48" },
-      { key: "D", text: "$72" }
-    ],
-    answer: "C",
-    explanation: "20% of 60 is 0.20×60 = 12. Subtract the discount: 60 − 12 = 48."
-  },
-  {
-    title: "PSDA Q2",
-    passage: "",
-    question: "A recipe uses 3 cups of flour for 8 servings. How many cups of flour are needed for 20 servings (at the same rate)?",
-    choices: [
-      { key: "A", text: "6.5" },
-      { key: "B", text: "7.5" },
-      { key: "C", text: "8" },
-      { key: "D", text: "9" }
-    ],
-    answer: "B",
-    explanation: "Use a proportion: 3 cups / 8 servings = x / 20. So x = 3×20/8 = 60/8 = 7.5 cups."
-  },
-  {
-    title: "PSDA Q3",
-    passage: "",
-    question: "A phone plan costs $30 per month plus $0.10 per text. If the total bill was $45, how many texts were sent?",
-    choices: [
-      { key: "A", text: "50" },
-      { key: "B", text: "100" },
-      { key: "C", text: "150" },
-      { key: "D", text: "450" }
-    ],
-    answer: "C",
-    explanation: "Total = 30 + 0.10t = 45 → 0.10t = 15 → t = 150."
-  },
-  {
-    title: "PSDA Q4",
-    passage:
-`Table: Hours studied and test score
-
-Hours:  1   2   3   4
-Score: 70  74  78  82`,
-    question: "Based on the table, what is the average increase in score per additional hour studied?",
-    choices: [
-      { key: "A", text: "2 points per hour" },
-      { key: "B", text: "3 points per hour" },
-      { key: "C", text: "4 points per hour" },
-      { key: "D", text: "12 points per hour" }
-    ],
-    answer: "C",
-    explanation: "From 1 hour to 4 hours: score goes 70 → 82, increase of 12 points over 3 hours. 12/3 = 4 points per hour."
-  },
-  {
-    title: "PSDA Q5",
-    passage: "",
-    question: "A bag contains 5 red marbles and 3 blue marbles. A marble is chosen at random. What is the probability of choosing a blue marble?",
-    choices: [
-      { key: "A", text: "3/5" },
-      { key: "B", text: "3/8" },
-      { key: "C", text: "5/8" },
-      { key: "D", text: "1/3" }
-    ],
-    answer: "B",
-    explanation: "Total marbles = 5 + 3 = 8. Blue marbles = 3. Probability = 3/8."
-  },
-  {
-    title: "PSDA Q6",
-    passage: "",
-    question: "A class has 24 students. If 75% of the students passed an exam, how many students passed?",
-    choices: [
-      { key: "A", text: "12" },
-      { key: "B", text: "16" },
-      { key: "C", text: "18" },
-      { key: "D", text: "20" }
-    ],
-    answer: "C",
-    explanation: "75% = 0.75. 0.75×24 = 18."
-  },
-  {
-    title: "PSDA Q7",
-    passage: "",
-    question: "A car travels 120 miles in 3 hours. At the same speed, how many miles will it travel in 5 hours?",
-    choices: [
-      { key: "A", text: "160" },
-      { key: "B", text: "180" },
-      { key: "C", text: "200" },
-      { key: "D", text: "240" }
-    ],
-    answer: "C",
-    explanation: "Speed = 120/3 = 40 miles per hour. In 5 hours: 40×5 = 200 miles."
-  },
-  {
-    title: "PSDA Q8",
-    passage: "",
-    question: "The mean (average) of 4 numbers is 12. The sum of the first three numbers is 33. What is the fourth number?",
-    choices: [
-      { key: "A", text: "9" },
-      { key: "B", text: "12" },
-      { key: "C", text: "15" },
-      { key: "D", text: "48" }
-    ],
-    answer: "C",
-    explanation: "Mean 12 for 4 numbers means total sum = 12×4 = 48. Fourth number = 48 − 33 = 15."
-  },
-  {
-    title: "PSDA Q9",
-    passage: "",
-    question: "A survey of 200 people found that 30% prefer tea. How many people prefer tea?",
-    choices: [
-      { key: "A", text: "30" },
-      { key: "B", text: "60" },
-      { key: "C", text: "90" },
-      { key: "D", text: "170" }
-    ],
-    answer: "B",
-    explanation: "30% of 200 = 0.30×200 = 60."
-  },
-  {
-    title: "PSDA Q10",
-    passage: "",
-    question: "A store sold 80 items on Monday and 100 items on Tuesday. By what percent did sales increase from Monday to Tuesday?",
-    choices: [
-      { key: "A", text: "20%" },
-      { key: "B", text: "25%" },
-      { key: "C", text: "80%" },
-      { key: "D", text: "125%" }
-    ],
-    answer: "B",
-    explanation: "Increase = 100 − 80 = 20. Percent increase = 20/80 = 0.25 = 25%."
-  }
-]
-
       "Math (Algebra)": [
         {
           title: "Math Q1",
@@ -409,6 +268,143 @@ Score: 70  74  78  82`,
         }
       ],
 
+      "Math (Problem Solving & Data Analysis)": [
+        {
+          title: "PSDA Q1",
+          passage: "",
+          question: "A store is having a 20% off sale. A jacket originally costs $60. What is the sale price?",
+          choices: [
+            { key: "A", text: "$12" },
+            { key: "B", text: "$40" },
+            { key: "C", text: "$48" },
+            { key: "D", text: "$72" }
+          ],
+          answer: "C",
+          explanation: "20% of 60 is 0.20×60 = 12. Subtract the discount: 60 − 12 = 48."
+        },
+        {
+          title: "PSDA Q2",
+          passage: "",
+          question: "A recipe uses 3 cups of flour for 8 servings. How many cups of flour are needed for 20 servings (at the same rate)?",
+          choices: [
+            { key: "A", text: "6.5" },
+            { key: "B", text: "7.5" },
+            { key: "C", text: "8" },
+            { key: "D", text: "9" }
+          ],
+          answer: "B",
+          explanation: "Use a proportion: 3/8 = x/20 ⇒ x = 3×20/8 = 7.5 cups."
+        },
+        {
+          title: "PSDA Q3",
+          passage: "",
+          question: "A phone plan costs $30 per month plus $0.10 per text. If the total bill was $45, how many texts were sent?",
+          choices: [
+            { key: "A", text: "50" },
+            { key: "B", text: "100" },
+            { key: "C", text: "150" },
+            { key: "D", text: "450" }
+          ],
+          answer: "C",
+          explanation: "45 = 30 + 0.10t ⇒ 0.10t = 15 ⇒ t = 150."
+        },
+        {
+          title: "PSDA Q4",
+          passage:
+`Table: Hours studied and test score
+
+Hours:  1   2   3   4
+Score: 70  74  78  82`,
+          question: "Based on the table, what is the average increase in score per additional hour studied?",
+          choices: [
+            { key: "A", text: "2 points per hour" },
+            { key: "B", text: "3 points per hour" },
+            { key: "C", text: "4 points per hour" },
+            { key: "D", text: "12 points per hour" }
+          ],
+          answer: "C",
+          explanation: "Increase from 70 to 82 is 12 points over 3 hours. 12/3 = 4 points/hour."
+        },
+        {
+          title: "PSDA Q5",
+          passage: "",
+          question: "A bag contains 5 red marbles and 3 blue marbles. A marble is chosen at random. What is the probability of choosing a blue marble?",
+          choices: [
+            { key: "A", text: "3/5" },
+            { key: "B", text: "3/8" },
+            { key: "C", text: "5/8" },
+            { key: "D", text: "1/3" }
+          ],
+          answer: "B",
+          explanation: "Total marbles = 8. Blue marbles = 3. Probability = 3/8."
+        },
+        {
+          title: "PSDA Q6",
+          passage: "",
+          question: "A class has 24 students. If 75% of the students passed an exam, how many students passed?",
+          choices: [
+            { key: "A", text: "12" },
+            { key: "B", text: "16" },
+            { key: "C", text: "18" },
+            { key: "D", text: "20" }
+          ],
+          answer: "C",
+          explanation: "0.75 × 24 = 18."
+        },
+        {
+          title: "PSDA Q7",
+          passage: "",
+          question: "A car travels 120 miles in 3 hours. At the same speed, how many miles will it travel in 5 hours?",
+          choices: [
+            { key: "A", text: "160" },
+            { key: "B", text: "180" },
+            { key: "C", text: "200" },
+            { key: "D", text: "240" }
+          ],
+          answer: "C",
+          explanation: "Speed = 120/3 = 40 mph. In 5 hours: 40×5 = 200."
+        },
+        {
+          title: "PSDA Q8",
+          passage: "",
+          question: "The mean (average) of 4 numbers is 12. The sum of the first three numbers is 33. What is the fourth number?",
+          choices: [
+            { key: "A", text: "9" },
+            { key: "B", text: "12" },
+            { key: "C", text: "15" },
+            { key: "D", text: "48" }
+          ],
+          answer: "C",
+          explanation: "Total sum = 12×4 = 48. Fourth = 48 − 33 = 15."
+        },
+        {
+          title: "PSDA Q9",
+          passage: "",
+          question: "A survey of 200 people found that 30% prefer tea. How many people prefer tea?",
+          choices: [
+            { key: "A", text: "30" },
+            { key: "B", text: "60" },
+            { key: "C", text: "90" },
+            { key: "D", text: "170" }
+          ],
+          answer: "B",
+          explanation: "0.30 × 200 = 60."
+        },
+        {
+          title: "PSDA Q10",
+          passage: "",
+          question: "A store sold 80 items on Monday and 100 items on Tuesday. By what percent did sales increase from Monday to Tuesday?",
+          choices: [
+            { key: "A", text: "20%" },
+            { key: "B", text: "25%" },
+            { key: "C", text: "80%" },
+            { key: "D", text: "125%" }
+          ],
+          answer: "B",
+          explanation: "Increase = 20. Percent increase = 20/80 = 0.25 = 25%."
+        }
+      ],
+
       "Reading": [
         {
           title: "Reading Q1",
@@ -453,7 +449,7 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
             { key: "D", text: "show that the scientist recorded temperatures incorrectly." }
           ],
           answer: "B",
-          explanation: "The passage says the average summarizes the data while still showing a trend (increase near month’s end)."
+          explanation: "The passage says the average summarizes the data while still showing a trend."
         }
       ]
     };
@@ -464,7 +460,7 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
     const score = {
       totalCorrect: 0,
       totalAttempts: 0,
-      perSection: {} // e.g., { "Math (Algebra)": {correct:0, attempts:0}, ... }
+      perSection: {}
     };
 
     function ensureSectionScore(sectionName) {
@@ -492,12 +488,8 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
     const sectionScoreTextEl = document.getElementById("sectionScoreText");
     const sectionAccuracyTextEl = document.getElementById("sectionAccuracyText");
 
-    // Tracks if the current question has been answered (to prevent double-scoring)
     let hasAnsweredCurrent = false;
 
-    // -------------------------
-    // UI HELPERS
-    // -------------------------
     function percent(correct, attempts) {
       if (attempts === 0) return "0%";
       return Math.round((correct / attempts) * 100) + "%";
@@ -548,12 +540,10 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
       hasAnsweredCurrent = false;
       disableChoiceButtons(false);
 
-      // reset result
       resultEl.style.display = "none";
       resultEl.classList.remove("correct", "incorrect");
       resultEl.textContent = "";
 
-      // passage
       if (q.passage && q.passage.trim().length > 0) {
         passageEl.style.display = "block";
         passageEl.textContent = q.passage;
@@ -562,10 +552,8 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
         passageEl.textContent = "";
       }
 
-      // question
       questionTextEl.textContent = q.question;
 
-      // choices
       choicesEl.innerHTML = "";
       q.choices.forEach(choice => {
         const btn = document.createElement("button");
@@ -580,12 +568,11 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
     }
 
     function checkAnswer(selectedKey, q, sectionName) {
-      if (hasAnsweredCurrent) return; // prevent double scoring
+      if (hasAnsweredCurrent) return;
       hasAnsweredCurrent = true;
 
       const isCorrect = selectedKey === q.answer;
 
-      // Update score
       score.totalAttempts += 1;
       ensureSectionScore(sectionName);
       score.perSection[sectionName].attempts += 1;
@@ -597,7 +584,6 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
 
       updateScoreUI();
 
-      // Show result
       resultEl.style.display = "block";
       resultEl.classList.remove("correct", "incorrect");
       resultEl.classList.add(isCorrect ? "correct" : "incorrect");
@@ -610,7 +596,6 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
         `Correct Answer: ${correctText}\n\n` +
         `Explanation:\n${q.explanation}`;
 
-      // Disable buttons after answering
       disableChoiceButtons(true);
     }
 
@@ -639,12 +624,9 @@ A scientist recorded daily temperatures for a month. Instead of looking at every
         score.perSection[k].attempts = 0;
       });
       updateScoreUI();
-      // keep current question on screen
     }
 
-    // -------------------------
     // INIT
-    // -------------------------
     populateSectionDropdown();
     populateQuestionDropdown(sectionSelectEl.value);
 

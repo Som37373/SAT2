@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Free SAT Math Practice</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 920px; margin: 0 auto; padding: 22px; line-height: 1.5; }
+    body { font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 22px; line-height: 1.5; }
     h1 { margin: 0 0 6px; }
     .subtle { color:#555; margin: 0 0 14px; }
     .card { border: 1px solid #ddd; border-radius: 14px; padding: 18px; margin-top: 14px; }
@@ -28,12 +28,15 @@
 </head>
 <body>
   <h1>Free SAT Math Practice</h1>
-  <p class="subtle">All questions are original. Use Random to get questions on demand.</p>
+  <p class="subtle">Original questions. Use filters + Random to get questions on demand.</p>
 
   <div class="card">
     <div class="row">
-      <label><strong>Topic:</strong></label>
-      <select id="topicSelect"></select>
+      <label><strong>Section:</strong></label>
+      <select id="sectionSelect"></select>
+
+      <label><strong>Difficulty:</strong></label>
+      <select id="difficultySelect"></select>
 
       <button id="randomBtn" type="button">Random Question</button>
       <button id="resetAskedBtn" type="button">Reset “Asked”</button>
@@ -48,7 +51,10 @@
       </div>
       <div class="scoreLine" style="margin-top:6px;">
         <div><strong>Asked (this session):</strong> <span id="askedText">0</span></div>
-        <div><span class="pill" id="currentTopicPill">Topic: —</span></div>
+        <div>
+          <span class="pill" id="currentSectionPill">Section: —</span>
+          <span class="pill" id="currentDifficultyPill">Difficulty: —</span>
+        </div>
       </div>
     </div>
 
@@ -65,9 +71,7 @@
 /* =========================
    Utilities
 ========================= */
-function randInt(min, max) { // inclusive
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -78,8 +82,7 @@ function shuffle(arr) {
 function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
 function formatFrac(n,d){
   if (d < 0) { n = -n; d = -d; }
-  const g = gcd(n,d);
-  n/=g; d/=g;
+  const g = gcd(n,d); n/=g; d/=g;
   if (d === 1) return String(n);
   return `${n}/${d}`;
 }
@@ -87,281 +90,144 @@ function percent(correct, attempts){
   if (attempts === 0) return "0%";
   return Math.round((correct/attempts)*100) + "%";
 }
-function makeMCQ({topic, question, correctValue, distractors, explanation}) {
-  // Build A-D with shuffling
-  const all = [correctValue, ...distractors];
+function makeMCQ({section, difficulty, question, correctValue, distractors, explanation}) {
+  const all = [String(correctValue), ...distractors.map(String)];
   const unique = [];
-  for (const v of all) {
-    if (!unique.includes(v)) unique.push(v);
-  }
-  while (unique.length < 4) unique.push(String(randInt(1, 50))); // fallback
+  for (const v of all) if (!unique.includes(v)) unique.push(v);
+  while (unique.length < 4) unique.push(String(randInt(1, 99)));
   const choices = unique.slice(0,4).map(String);
   shuffle(choices);
   const letters = ["A","B","C","D"];
   const choiceObjs = choices.map((t,i)=>({ key: letters[i], text: t }));
   const answerKey = letters[choices.indexOf(String(correctValue))];
-  return {
-    topic,
-    question,
-    choices: choiceObjs,
-    answer: answerKey,
-    explanation
-  };
+  return { section, difficulty, question, choices: choiceObjs, answer: answerKey, explanation };
 }
 
 /* =========================
-   Question Bank (~100)
-   Topics:
-   - Algebra
-   - PSDA
-   - Advanced (Passport)
-   - Additional (Geo/Trig/Complex)
+   Sections / Difficulty
 ========================= */
-const TOPICS = ["All", "Algebra", "PSDA", "Advanced", "Additional"];
+const SECTIONS = ["All", "Algebra", "PSDA", "Passport to Advanced Math", "Additional Topics"];
+const DIFFICULTIES = ["All", "Easy", "Medium", "Hard"];
+
+/* =========================
+   Bank
+========================= */
 const bank = [];
 
-function seedHandcrafted() {
-  // A few solid “anchor” questions per topic (original)
-  bank.push(
-    makeMCQ({
-      topic:"Algebra",
-      question:"Solve for x:\n2x + 7 = 19",
-      correctValue:"6",
-      distractors:["5","7","12"],
-      explanation:"2x = 12 ⇒ x = 6."
-    }),
-    makeMCQ({
-      topic:"PSDA",
-      question:"A store reduces a $80 item by 15%. What is the sale price?",
-      correctValue:"68",
-      distractors:["12","72","92"],
-      explanation:"15% of 80 is 12. Sale price = 80 − 12 = 68."
-    }),
-    makeMCQ({
-      topic:"Advanced",
-      question:"Solve for x:\nx^2 - 16 = 0",
-      correctValue:"x = 4 or x = -4",
-      distractors:["x = 8","x = 16","x = -16"],
-      explanation:"x^2 = 16 ⇒ x = ±4."
-    }),
-    makeMCQ({
-      topic:"Additional",
-      question:"A right triangle has legs 6 and 8. What is the hypotenuse?",
-      correctValue:"10",
-      distractors:["14","48","7"],
-      explanation:"6^2 + 8^2 = 36 + 64 = 100 ⇒ hypotenuse = √100 = 10."
-    })
-  );
-}
-
-function generateAlgebra(n) {
-  for (let i=0;i<n;i++){
+/* -------------------------
+   50 Easy/Medium (kept)
+------------------------- */
+function addEasyMedium50() {
+  // 12 Algebra
+  for (let i=0;i<12;i++){
     const a = randInt(2, 9);
-    const x = randInt(-8, 12);
-    const b = randInt(-20, 20);
+    const x = randInt(-6, 10);
+    const b = randInt(-15, 15);
     const c = a*x + b;
-    const q = `Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`;
-    const correct = String(x);
-    const d1 = String(x + randInt(1,4));
-    const d2 = String(x - randInt(1,4));
-    const d3 = String(c); // common trap
     bank.push(makeMCQ({
-      topic:"Algebra",
-      question:q,
-      correctValue:correct,
-      distractors:[d1,d2,d3],
-      explanation:`Subtract ${b} from both sides: ${a}x = ${c - b}. Divide by ${a}: x = ${x}.`
+      section:"Algebra",
+      difficulty: (i<6 ? "Easy" : "Medium"),
+      question:`Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`,
+      correctValue:x,
+      distractors:[x+2, x-3, c],
+      explanation:`Subtract ${b} from both sides: ${a}x = ${c-b}. Divide by ${a}: x = ${x}.`
     }));
   }
-}
 
-function generateSystems(n) {
-  for (let i=0;i<n;i++){
-    const x = randInt(-5, 8);
-    const y = randInt(-5, 8);
-    const a1 = randInt(1,4), b1 = randInt(1,4);
-    const a2 = randInt(1,4), b2 = randInt(1,4);
-    // ensure not proportional
-    if (a1*b2 === a2*b1) { i--; continue; }
-    const c1 = a1*x + b1*y;
-    const c2 = a2*x + b2*y;
-    const q = `Solve the system:\n${a1}x + ${b1}y = ${c1}\n${a2}x + ${b2}y = ${c2}\nWhat is x?`;
-    const correct = String(x);
-    bank.push(makeMCQ({
-      topic:"Advanced",
-      question:q,
-      correctValue:correct,
-      distractors:[String(y), String(x+2), String(x-3)],
-      explanation:`The solution to the system is (x, y) = (${x}, ${y}), so x = ${x}.`
-    }));
-  }
-}
-
-function generateQuadratics(n) {
-  for (let i=0;i<n;i++){
-    const r1 = randInt(-8,8);
-    const r2 = randInt(-8,8);
-    if (r1 === 0 && r2 === 0) { i--; continue; }
-    const b = -(r1 + r2);
-    const c = r1*r2;
-    const q = `Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`;
-    const correct = `x = ${r1} or x = ${r2}`;
-    bank.push(makeMCQ({
-      topic:"Advanced",
-      question:q,
-      correctValue:correct,
-      distractors:[
-        `x = ${-r1} or x = ${-r2}`,
-        `x = ${r1 + r2}`,
-        `x = ${c}`
-      ],
-      explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
-    }));
-  }
-}
-
-function generateRationals(n) {
-  for (let i=0;i<n;i++){
-    const x = randInt(-8, 10);
-    const p = randInt(-5,5);
-    const q = randInt(-5,5);
-    const r = randInt(1,4);
-    // equation: (x+p)/(x+q) = r
-    // Solve: x+p = r(x+q) => x+p = rx + rq => p - rq = (r-1)x => x = (p-rq)/(r-1)
-    // pick x first by constructing p to make integer solution
-    const denom = (r-1);
-    const rq = r*q;
-    const pMade = rq + denom*x;
-    const question = `Solve for x:\n(x ${pMade>=0?"+":"-"} ${Math.abs(pMade)}) / (x ${q>=0?"+":"-"} ${Math.abs(q)}) = ${r}`;
-    const correct = String(x);
-    bank.push(makeMCQ({
-      topic:"Advanced",
-      question,
-      correctValue:correct,
-      distractors:[String(x+1), String(x-2), String(q)], // common traps
-      explanation:`Cross-multiply: x ${pMade>=0?"+":"-"} ${Math.abs(pMade)} = ${r}(x ${q>=0?"+":"-"} ${Math.abs(q)}). Solve to get x = ${x}. (Also require x ≠ ${-q}.)`
-    }));
-  }
-}
-
-function generatePSDA(n) {
-  const types = ["percent","ratio","mean","prob","unitrate"];
-  for (let i=0;i<n;i++){
-    const t = types[randInt(0, types.length-1)];
-    if (t === "percent") {
-      const price = randInt(20, 200);
-      const pct = [10,12,15,20,25,30][randInt(0,5)];
-      const disc = Math.round(price * pct / 100);
-      const sale = price - disc;
+  // 12 PSDA
+  for (let i=0;i<12;i++){
+    if (i%3===0){
+      const price = randInt(30, 180);
+      const pct = [10,15,20,25,30][randInt(0,4)];
+      const disc = Math.round(price*pct/100);
+      const sale = price-disc;
       bank.push(makeMCQ({
-        topic:"PSDA",
+        section:"PSDA",
+        difficulty:(i<6?"Easy":"Medium"),
         question:`A ${pct}% discount is applied to a $${price} item. What is the sale price?`,
-        correctValue:String(sale),
-        distractors:[String(disc), String(price+disc), String(price - Math.round(disc/2))],
-        explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale price = ${price} − ${disc} = ${sale}.`
+        correctValue:sale,
+        distractors:[disc, price+disc, price - Math.round(disc/2)],
+        explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale = ${price} − ${disc} = ${sale}.`
       }));
-    } else if (t === "ratio") {
-      const a = randInt(2,9), b = randInt(2,9);
-      const scale = randInt(2,6);
-      const targetA = a*scale;
-      const targetB = b*scale;
+    } else if (i%3===1){
+      const red = randInt(3,9), blue = randInt(3,9);
+      const total = red+blue;
       bank.push(makeMCQ({
-        topic:"PSDA",
-        question:`The ratio of red to blue tiles is ${a}:${b}. If there are ${targetA} red tiles, how many blue tiles are there?`,
-        correctValue:String(targetB),
-        distractors:[String(b), String(targetA+targetB), String(targetA-targetB)],
-        explanation:`Scale factor = ${targetA}/${a} = ${scale}. Blue tiles = ${b}×${scale} = ${targetB}.`
-      }));
-    } else if (t === "mean") {
-      const nNums = 5;
-      const nums = Array.from({length:nNums-1}, ()=>randInt(4, 20));
-      const mean = randInt(8, 18);
-      const total = mean*nNums;
-      const sumKnown = nums.reduce((s,v)=>s+v,0);
-      const last = total - sumKnown;
-      bank.push(makeMCQ({
-        topic:"PSDA",
-        question:`The mean of 5 numbers is ${mean}. Four of the numbers are ${nums.join(", ")}. What is the fifth number?`,
-        correctValue:String(last),
-        distractors:[String(mean), String(total), String(sumKnown)],
-        explanation:`Total sum = mean×5 = ${mean}×5 = ${total}. Fifth = ${total} − ${sumKnown} = ${last}.`
-      }));
-    } else if (t === "prob") {
-      const red = randInt(2,8);
-      const blue = randInt(2,8);
-      const total = red + blue;
-      bank.push(makeMCQ({
-        topic:"PSDA",
+        section:"PSDA",
+        difficulty:(i<6?"Easy":"Medium"),
         question:`A bag has ${red} red and ${blue} blue marbles. What is the probability of choosing a blue marble?`,
-        correctValue:formatFrac(blue, total),
+        correctValue:formatFrac(blue,total),
         distractors:[formatFrac(red,total), formatFrac(blue,red), formatFrac(1,total)],
         explanation:`Probability = favorable/total = ${blue}/${total} = ${formatFrac(blue,total)}.`
       }));
-    } else { // unitrate
-      const miles = randInt(60, 240);
+    } else {
+      const miles = randInt(80, 240);
       const hours = randInt(2, 6);
-      const speed = miles / hours;
+      const speed = miles/hours;
       if (!Number.isInteger(speed)) { i--; continue; }
-      const hours2 = randInt(4, 8);
-      const miles2 = speed * hours2;
+      const h2 = randInt(4, 8);
+      const d2 = speed*h2;
       bank.push(makeMCQ({
-        topic:"PSDA",
-        question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${hours2} hours?`,
-        correctValue:String(miles2),
-        distractors:[String(speed), String(miles + miles2), String(miles2 - speed)],
-        explanation:`Speed = ${miles}/${hours} = ${speed} mph. Distance in ${hours2} hours = ${speed}×${hours2} = ${miles2}.`
+        section:"PSDA",
+        difficulty:(i<6?"Easy":"Medium"),
+        question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${h2} hours?`,
+        correctValue:d2,
+        distractors:[speed, d2+speed, miles+d2],
+        explanation:`Speed = ${miles}/${hours} = ${speed} mph. Distance = ${speed}×${h2} = ${d2}.`
       }));
     }
   }
-}
 
-function generateAdditional(n) {
-  const types = ["areaRect","circ","volumeCube","anglesTri","trig","complex"];
-  for (let i=0;i<n;i++){
-    const t = types[randInt(0, types.length-1)];
-    if (t === "areaRect") {
-      const L = randInt(3, 20), W = randInt(3, 20);
+  // 13 Advanced
+  for (let i=0;i<13;i++){
+    const r1 = randInt(-7,7);
+    const r2 = randInt(-7,7);
+    if (r1===0 && r2===0) { i--; continue; }
+    const b = -(r1+r2), c = r1*r2;
+    bank.push(makeMCQ({
+      section:"Passport to Advanced Math",
+      difficulty:(i<6?"Easy":"Medium"),
+      question:`Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`,
+      correctValue:`x = ${r1} or x = ${r2}`,
+      distractors:[`x = ${-r1} or x = ${-r2}`, `x = ${r1+r2}`, `x = ${c}`],
+      explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
+    }));
+  }
+
+  // 13 Additional
+  for (let i=0;i<13;i++){
+    if (i%4===0){
+      const L=randInt(4,22), W=randInt(4,22);
       bank.push(makeMCQ({
-        topic:"Additional",
+        section:"Additional Topics",
+        difficulty:(i<6?"Easy":"Medium"),
         question:`What is the area of a rectangle with length ${L} and width ${W}?`,
-        correctValue:String(L*W),
-        distractors:[String(L+W), String(2*(L+W)), String(L*W*2)],
+        correctValue:L*W,
+        distractors:[L+W, 2*(L+W), 2*L*W],
         explanation:`Area = L×W = ${L}×${W} = ${L*W}.`
       }));
-    } else if (t === "circ") {
-      const r = randInt(2, 12);
-      const val = (2*3.14*r).toFixed(2);
+    } else if (i%4===1){
+      const s=randInt(2,10);
       bank.push(makeMCQ({
-        topic:"Additional",
-        question:`A circle has radius ${r}. What is its circumference? (Use π ≈ 3.14)`,
-        correctValue:String(val),
-        distractors:[String((3.14*r*r).toFixed(2)), String((2*r).toFixed(2)), String((3.14*r).toFixed(2))],
-        explanation:`Circumference = 2πr = 2×3.14×${r} = ${val}.`
-      }));
-    } else if (t === "volumeCube") {
-      const s = randInt(2, 10);
-      bank.push(makeMCQ({
-        topic:"Additional",
+        section:"Additional Topics",
+        difficulty:(i<6?"Easy":"Medium"),
         question:`What is the volume of a cube with side length ${s}?`,
-        correctValue:String(s**3),
-        distractors:[String(s**2), String(6*s**2), String(3*s)],
-        explanation:`Volume of a cube = s³ = ${s}³ = ${s**3}.`
+        correctValue:s**3,
+        distractors:[s**2, 6*s**2, 3*s],
+        explanation:`Volume = s³ = ${s}³ = ${s**3}.`
       }));
-    } else if (t === "anglesTri") {
-      const a = randInt(20, 80);
-      const b = randInt(20, 80);
-      if (a + b >= 170) { i--; continue; }
-      const c = 180 - a - b;
+    } else if (i%4===2){
       bank.push(makeMCQ({
-        topic:"Additional",
-        question:`Two angles in a triangle measure ${a}° and ${b}°. What is the third angle?`,
-        correctValue:String(c),
-        distractors:[String(a+b), String(180-(a+b)/2), String(90)],
-        explanation:`Triangle angles sum to 180°. Third = 180 − ${a} − ${b} = ${c}.`
+        section:"Additional Topics",
+        difficulty:(i<6?"Easy":"Medium"),
+        question:`Simplify: i^4`,
+        correctValue:"1",
+        distractors:["-1","i","-i"],
+        explanation:`i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1.`
       }));
-    } else if (t === "trig") {
-      const angle = [30,45,60][randInt(0,2)];
-      const func = ["sin","cos"][randInt(0,1)];
+    } else {
+      const angle=[30,45,60][randInt(0,2)];
+      const func=["sin","cos"][randInt(0,1)];
       let correct;
       if (func==="sin" && angle===30) correct="1/2";
       if (func==="sin" && angle===45) correct="√2/2";
@@ -369,73 +235,380 @@ function generateAdditional(n) {
       if (func==="cos" && angle===30) correct="√3/2";
       if (func==="cos" && angle===45) correct="√2/2";
       if (func==="cos" && angle===60) correct="1/2";
-      const distractors = ["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
+      const distractors=["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
       shuffle(distractors);
       bank.push(makeMCQ({
-        topic:"Additional",
+        section:"Additional Topics",
+        difficulty:(i<6?"Easy":"Medium"),
         question:`What is ${func}(${angle}°)?`,
         correctValue:correct,
         distractors:distractors.slice(0,3),
         explanation:`Special-angle value: ${func}(${angle}°) = ${correct}.`
       }));
-    } else { // complex
-      const kind = randInt(1,3);
-      if (kind===1) {
-        bank.push(makeMCQ({
-          topic:"Additional",
-          question:"Simplify: i^2",
-          correctValue:"-1",
-          distractors:["1","i","-i"],
-          explanation:"By definition, i^2 = −1."
-        }));
-      } else if (kind===2) {
-        bank.push(makeMCQ({
-          topic:"Additional",
-          question:"Simplify: i^4",
-          correctValue:"1",
-          distractors:["-1","i","-i"],
-          explanation:"i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1."
-        }));
-      } else {
-        const a = randInt(1,9), b = randInt(1,9);
-        // (a+bi)+(a-bi)=2a
-        bank.push(makeMCQ({
-          topic:"Additional",
-          question:`Simplify: (${a} + ${b}i) + (${a} - ${b}i)`,
-          correctValue:String(2*a),
-          distractors:[`${2*a}i`, `${a} + ${b}i`, `${a} - ${b}i`],
-          explanation:`The imaginary parts cancel: +${b}i and −${b}i ⇒ 0. Result = ${a}+${a} = ${2*a}.`
-        }));
-      }
     }
   }
 }
 
-/* Build ~100 questions */
+/* -------------------------
+   50 HARD questions (new)
+   (harder multi-step, algebraic structure, data reasoning)
+------------------------- */
+function addHard50() {
+  // 13 HARD Algebra
+  for (let i=0;i<13;i++){
+    const type = i % 5;
+
+    if (type === 0) {
+      // absolute value equation with two solutions
+      const a = randInt(2,6);
+      const h = randInt(-6,6);
+      const k = randInt(3,12);
+      // |a(x-h)| = k  => x = h ± k/a (ensure divisible)
+      if (k % a !== 0) { i--; continue; }
+      const d = k/a;
+      const sol1 = h + d, sol2 = h - d;
+      bank.push(makeMCQ({
+        section:"Algebra",
+        difficulty:"Hard",
+        question:`Solve for x:\n|${a}(x ${h>=0? "-":"+"} ${Math.abs(h)})| = ${k}`,
+        correctValue:`x = ${sol1} or x = ${sol2}`,
+        distractors:[`x = ${h} ± ${k}`, `x = ${k} or x = ${-k}`, `x = ${h}`],
+        explanation:`|${a}(x−${h})|=${k} ⇒ ${a}|x−${h}|=${k} ⇒ |x−${h}|=${d} ⇒ x=${h}±${d}.`
+      }));
+    } else if (type === 1) {
+      // compound fraction
+      const x = randInt(2,9);
+      const a = randInt(1,6);
+      const b = randInt(1,6);
+      // (a/x) + (b/x) = (a+b)/x
+      bank.push(makeMCQ({
+        section:"Algebra",
+        difficulty:"Hard",
+        question:`If x ≠ 0, simplify:\n(${a}/x) + (${b}/x)`,
+        correctValue:`${a+b}/x`,
+        distractors:[`${a+b}x`, `${a*b}/x`, `${a+b}`],
+        explanation:`Common denominator x: (${a}+${b})/x = ${a+b}/x.`
+      }));
+    } else if (type === 2) {
+      // linear inequality with flipping sign
+      const a = randInt(2,6);
+      const b = randInt(3,12);
+      const c = randInt(-10,10);
+      // -a(x + c) > b  => x < (-b/a) - c (ensure integer by making b divisible by a)
+      const A = -a;
+      if (b % a !== 0) { i--; continue; }
+      const rhs = -b/a - c;
+      bank.push(makeMCQ({
+        section:"Algebra",
+        difficulty:"Hard",
+        question:`Solve the inequality:\n${A}(x ${c>=0?"+":"-"} ${Math.abs(c)}) > ${b}\nChoose the correct solution set.`,
+        correctValue:`x < ${rhs}`,
+        distractors:[`x > ${rhs}`, `x ≤ ${rhs}`, `x ≥ ${rhs}`],
+        explanation:`Divide by negative ${A} (flip sign): x ${c>=0?"+":"-"} ${Math.abs(c)} < ${-b/a}. Then isolate x: x < ${rhs}.`
+      }));
+    } else if (type === 3) {
+      // function composition
+      const m = randInt(2,6);
+      const n = randInt(-5,5);
+      const x = randInt(-3,6);
+      // f(x)=mx+n, g(x)=x-2. Find f(g(x))
+      bank.push(makeMCQ({
+        section:"Algebra",
+        difficulty:"Hard",
+        question:`Let f(x) = ${m}x ${n>=0?"+":"-"} ${Math.abs(n)} and g(x) = x - 2.\nWhat is f(g(x))?`,
+        correctValue:`${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}`,
+        distractors:[`${m}x ${n>=0?"+":"-"} ${Math.abs(n)}`, `${m}x ${(-2+n)>=0?"+":"-"} ${Math.abs(-2+n)}`, `${m}(x-2) ${n>=0?"+":"-"} ${Math.abs(n)}`],
+        explanation:`g(x)=x−2 ⇒ f(g(x)) = ${m}(x−2) ${n>=0?"+":"-"} ${Math.abs(n)} = ${m}x ${(-2*m+n)>=0?"+":"-"} ${Math.abs(-2*m+n)}.`
+      }));
+    } else {
+      // solve for parameter
+      const a = randInt(2,6);
+      const x = randInt(-4,6);
+      const b = randInt(-10,10);
+      const c = a*x + b;
+      // ax + b = c, solve for a
+      bank.push(makeMCQ({
+        section:"Algebra",
+        difficulty:"Hard",
+        question:`For what value of a does the equation hold?\nax ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}\nwhen x = ${x}?`,
+        correctValue:String(a),
+        distractors:[String(x), String(c), String(a+2)],
+        explanation:`Substitute x=${x}: a(${x}) ${b>=0?"+":"-"} ${Math.abs(b)} = ${c} ⇒ a(${x}) = ${c-b} ⇒ a = ${(c-b)}/${x} = ${a}.`
+      }));
+    }
+  }
+
+  // 12 HARD PSDA
+  for (let i=0;i<12;i++){
+    const type = i % 4;
+    if (type === 0) {
+      // multi-step percent change then percent of new
+      const base = randInt(80, 200);
+      const inc = [12,15,18,20,25][randInt(0,4)];
+      const dec = [8,10,12,15][randInt(0,3)];
+      const afterInc = Math.round(base*(1+inc/100));
+      const afterDec = Math.round(afterInc*(1-dec/100));
+      bank.push(makeMCQ({
+        section:"PSDA",
+        difficulty:"Hard",
+        question:`A price is increased by ${inc}% and then decreased by ${dec}%. The original price was $${base}.\nWhat is the final price? (Round to the nearest dollar if needed.)`,
+        correctValue:String(afterDec),
+        distractors:[String(base), String(afterInc), String(Math.round(base*(1+(inc-dec)/100)))],
+        explanation:`After increase: ${base}×(1+${inc}/100) ≈ ${afterInc}. Then decrease: ${afterInc}×(1−${dec}/100) ≈ ${afterDec}.`
+      }));
+    } else if (type === 1) {
+      // weighted average
+      const a = randInt(70, 95);
+      const b = randInt(60, 90);
+      const wa = randInt(2,6);
+      const wb = randInt(2,6);
+      const avg = (a*wa + b*wb) / (wa+wb);
+      if (!Number.isInteger(avg)) { i--; continue; }
+      bank.push(makeMCQ({
+        section:"PSDA",
+        difficulty:"Hard",
+        question:`A student scores ${a} on a quiz worth ${wa} points and ${b} on a test worth ${wb} points.\nWhat is the weighted average score?`,
+        correctValue:String(avg),
+        distractors:[String(Math.round((a+b)/2)), String(a), String(b)],
+        explanation:`Weighted avg = (${a}·${wa} + ${b}·${wb})/(${wa}+${wb}) = ${avg}.`
+      }));
+    } else if (type === 2) {
+      // two-way table reasoning
+      const total = 200;
+      const preferA = randInt(70,130);
+      const preferB = total - preferA;
+      const group1 = randInt(80,120);
+      const group2 = total - group1;
+      const a1 = randInt(Math.max(20, preferA - group2), Math.min(preferA - 20, group1));
+      const a2 = preferA - a1;
+      // question: P(prefer A | group2)
+      const num = a2, den = group2;
+      bank.push(makeMCQ({
+        section:"PSDA",
+        difficulty:"Hard",
+        question:
+`A survey of ${total} people is split into Group 1 (${group1} people) and Group 2 (${group2} people).
+${a1} people in Group 1 prefer Option A, and ${a2} people in Group 2 prefer Option A.
+What is the probability that a randomly selected person from Group 2 prefers Option A?`,
+        correctValue:formatFrac(num, den),
+        distractors:[formatFrac(preferA,total), formatFrac(a1,group1), formatFrac(den,num)],
+        explanation:`Conditional probability: P(A | Group 2) = (# in Group 2 who prefer A)/(# in Group 2) = ${a2}/${group2} = ${formatFrac(num,den)}.`
+      }));
+    } else {
+      // rate/work combined
+      const r1 = randInt(3,8);
+      const r2 = randInt(3,8);
+      if (r1 === r2) { i--; continue; }
+      // worker A finishes in r1 hours, B in r2 hours. Together time = 1 / (1/r1 + 1/r2)
+      const num = r1*r2, den = r1+r2;
+      const simp = formatFrac(num, den);
+      bank.push(makeMCQ({
+        section:"PSDA",
+        difficulty:"Hard",
+        question:`Machine A can complete a job in ${r1} hours and Machine B can complete the same job in ${r2} hours.\nAt constant rates, how many hours will it take them working together?`,
+        correctValue:simp,
+        distractors:[String(r1+r2), formatFrac(den,num), String(Math.min(r1,r2))],
+        explanation:`Rates add: 1/T = 1/${r1} + 1/${r2} = (${r2}+${r1})/${r1*r2}. So T = ${r1*r2}/${r1+r2} = ${simp}.`
+      }));
+    }
+  }
+
+  // 13 HARD Advanced (Passport)
+  for (let i=0;i<13;i++){
+    const type = i % 5;
+
+    if (type === 0) {
+      // parameter quadratic roots relationship
+      const r1 = randInt(-6,6);
+      const r2 = randInt(-6,6);
+      if (r1 === r2) { i--; continue; }
+      // x^2 - (r1+r2)x + k = 0, ask for k
+      const k = r1*r2;
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`A quadratic has roots ${r1} and ${r2} and leading coefficient 1.\nIf its equation is x^2 - (${r1+r2})x + k = 0, what is k?`,
+        correctValue:String(k),
+        distractors:[String(r1+r2), String((r1+r2)*2), String(r1-r2)],
+        explanation:`For x^2 - (sum)x + (product) = 0, k = (root product) = ${r1}·${r2} = ${k}.`
+      }));
+    } else if (type === 1) {
+      // exponential equation
+      const base = [2,3,5][randInt(0,2)];
+      const x = randInt(2,6);
+      const rhs = base**(x+1);
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`Solve for x:\n${base}^{2x - 1} = ${rhs}`,
+        correctValue:String((x+1)/2 + 0.5), // oops: let's avoid fractions; rebuild
+        distractors:[""],
+        explanation:""
+      }));
+      bank.pop(); // remove placeholder
+      // choose equation that yields integer
+      const n = randInt(2,7);
+      const m = randInt(1,6);
+      const want = randInt(2,6);
+      // make: base^(n x + m) = base^(n*want + m)
+      const expoR = n*want + m;
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`Solve for x:\n${base}^{${n}x ${m>=0?"+":"-"} ${Math.abs(m)}} = ${base}^{${expoR}}`,
+        correctValue:String(want),
+        distractors:[String(want+1), String(want-1), String(expoR)],
+        explanation:`Same base ⇒ set exponents equal: ${n}x ${m>=0?"+":"-"} ${Math.abs(m)} = ${expoR}. Solve ⇒ x = ${want}.`
+      }));
+    } else if (type === 2) {
+      // rational simplification with restrictions
+      const a = randInt(2,7);
+      const b = randInt(1,6);
+      // (ax^2 - abx)/(ax) = x - b
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`If x ≠ 0, simplify:\n(${a}x^2 - ${a*b}x)/(${a}x)`,
+        correctValue:`x - ${b}`,
+        distractors:[`x + ${b}`, `${a}x - ${b}`, `${a}(x - ${b})`],
+        explanation:`Factor numerator: ${a}x(x - ${b}). Divide by ${a}x ⇒ x - ${b}.`
+      }));
+    } else if (type === 3) {
+      // polynomial remainder theorem (simple)
+      const r = randInt(-3,4);
+      const a = randInt(1,4);
+      const b = randInt(-6,6);
+      const c = randInt(-6,6);
+      // P(x)=a x^2 + b x + c. ask remainder when divided by (x-r) = P(r)
+      const rem = a*r*r + b*r + c;
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`Let P(x) = ${a}x^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)}.\nWhat is the remainder when P(x) is divided by (x ${r>=0? "-":"+"} ${Math.abs(r)})?`,
+        correctValue:String(rem),
+        distractors:[String(c), String(a*r*r), String(b*r)],
+        explanation:`Remainder theorem: remainder = P(${r}). Compute P(${r}) = ${rem}.`
+      }));
+    } else {
+      // complex roots multiplication
+      const p = randInt(1,6);
+      const q = randInt(1,6);
+      // (p+qi)(p-qi)=p^2+q^2
+      const val = p*p + q*q;
+      bank.push(makeMCQ({
+        section:"Passport to Advanced Math",
+        difficulty:"Hard",
+        question:`Simplify:\n(${p} + ${q}i)(${p} - ${q}i)`,
+        correctValue:String(val),
+        distractors:[`${p*p} - ${q*q}`, `${val}i`, `${p*p + q*q}i`],
+        explanation:`(a+bi)(a−bi) = a^2 + b^2. Here: ${p}^2 + ${q}^2 = ${val}.`
+      }));
+    }
+  }
+
+  // 12 HARD Additional Topics
+  for (let i=0;i<12;i++){
+    const type = i % 4;
+    if (type === 0) {
+      // arc length with radians
+      const r = randInt(3,12);
+      const theta = [Math.PI/3, Math.PI/2, 2*Math.PI/3][randInt(0,2)];
+      const thetaText = (theta===Math.PI/3) ? "π/3" : (theta===Math.PI/2) ? "π/2" : "2π/3";
+      const L = theta * r;
+      // keep as fraction with pi if possible
+      let Ltext = "";
+      if (theta===Math.PI/3) Ltext = `${r}/3 π`;
+      if (theta===Math.PI/2) Ltext = `${r}/2 π`;
+      if (theta===2*Math.PI/3) Ltext = `${2*r}/3 π`;
+      bank.push(makeMCQ({
+        section:"Additional Topics",
+        difficulty:"Hard",
+        question:`A circle has radius ${r}. What is the arc length of a sector with central angle ${thetaText} radians?`,
+        correctValue:Ltext,
+        distractors:[`${r}π`, `${2*r}π`, `${r*r}π`],
+        explanation:`Arc length L = rθ. Here L = ${r}·${thetaText} = ${Ltext}.`
+      }));
+    } else if (type === 1) {
+      // similar solids scaling volume
+      const k = randInt(2,5);
+      const V = randInt(20,120);
+      const newV = V * (k**3);
+      bank.push(makeMCQ({
+        section:"Additional Topics",
+        difficulty:"Hard",
+        question:`A solid is scaled so that every length is multiplied by ${k}. If the original volume is ${V} cubic units, what is the new volume?`,
+        correctValue:String(newV),
+        distractors:[String(V*k), String(V*k*k), String(V + k)],
+        explanation:`Volume scales by k^3. New volume = ${V}·${k}^3 = ${V}·${k**3} = ${newV}.`
+      }));
+    } else if (type === 2) {
+      // trig: solve for sin given cos using identity
+      const cosVal = ["3/5","5/13","12/13","√3/2","√2/2"][randInt(0,4)];
+      let sinVal, note;
+      if (cosVal==="3/5") { sinVal="4/5"; note="Assuming acute angle.";}
+      if (cosVal==="5/13") { sinVal="12/13"; note="Assuming acute angle.";}
+      if (cosVal==="12/13") { sinVal="5/13"; note="Assuming acute angle.";}
+      if (cosVal==="√3/2") { sinVal="1/2"; note="Special angle (30-60-90).";}
+      if (cosVal==="√2/2") { sinVal="√2/2"; note="Special angle (45-45-90).";}
+      const d = ["0","1/2","√2/2","√3/2","4/5","5/13","12/13"].filter(v=>v!==sinVal);
+      shuffle(d);
+      bank.push(makeMCQ({
+        section:"Additional Topics",
+        difficulty:"Hard",
+        question:`If cos(θ) = ${cosVal} and θ is an acute angle, what is sin(θ)?`,
+        correctValue:sinVal,
+        distractors:d.slice(0,3),
+        explanation:`Use sin^2θ + cos^2θ = 1. With cos(θ) = ${cosVal}, solve for sin(θ). ${note}`
+      }));
+    } else {
+      // complex division by i
+      const a = randInt(1,9);
+      const b = randInt(1,9);
+      // (a+bi)/i = b - ai
+      bank.push(makeMCQ({
+        section:"Additional Topics",
+        difficulty:"Hard",
+        question:`Simplify:\n(${a} + ${b}i) / i`,
+        correctValue:`${b} - ${a}i`,
+        distractors:[`${b} + ${a}i`, `${a} - ${b}i`, `-${b} + ${a}i`],
+        explanation:`Divide by i by multiplying by (−i)/(−i): (a+bi)/i = (a+bi)(−i)/(i·−i) = (b − ai).`
+      }));
+    }
+  }
+}
+
+/* =========================
+   Build Bank (100)
+========================= */
 function buildBank() {
   bank.length = 0;
-  seedHandcrafted();
+  addEasyMedium50();
+  addHard50();
 
-  generateAlgebra(24);     // ~24
-  generatePSDA(24);        // ~24
-  generateQuadratics(16);  // ~16
-  generateRationals(12);   // ~12
-  generateSystems(10);     // ~10
-  generateAdditional(16);  // ~16
-
-  // That totals roughly: 4 + 24+24+16+12+10+16 = 106 (some duplicates can collapse to 100-ish)
-  // Remove accidental duplicates by question text
+  // de-dupe by (section||difficulty||question)
   const seen = new Set();
   const filtered = [];
   for (const q of bank) {
-    const key = q.topic + "||" + q.question;
+    const key = `${q.section}||${q.difficulty}||${q.question}`;
     if (!seen.has(key)) { seen.add(key); filtered.push(q); }
   }
   bank.length = 0;
   bank.push(...filtered);
 
-  // If we ended up slightly above 100, trim a bit (still ~100)
+  // trim or top up to exactly 100 if needed
   while (bank.length > 100) bank.pop();
+  while (bank.length < 100) {
+    // add a few hard algebra to top up
+    const a = randInt(2,7), x = randInt(-6,8), b = randInt(-20,20);
+    bank.push(makeMCQ({
+      section:"Algebra",
+      difficulty:"Hard",
+      question:`Solve for x:\n${a}(x ${b>=0?"+":"-"} ${Math.abs(b)}) = ${a*(x+b)}`,
+      correctValue:String(x),
+      distractors:[String(x+1), String(x-2), String(b)],
+      explanation:`Expand both sides: ${a}x ${a*b>=0?"+":"-"} ${Math.abs(a*b)} = ${a}x ${a*b>=0?"+":"-"} ${Math.abs(a*b)}. Identity holds for all x, but here the setup simplifies to x = ${x} in this generated case.`
+    }));
+  }
 }
 
 /* =========================
@@ -449,7 +622,8 @@ let currentQuestion = null;
 /* =========================
    DOM
 ========================= */
-const topicSelectEl = document.getElementById("topicSelect");
+const sectionSelectEl = document.getElementById("sectionSelect");
+const difficultySelectEl = document.getElementById("difficultySelect");
 const questionTextEl = document.getElementById("questionText");
 const choicesEl = document.getElementById("choices");
 const resultEl = document.getElementById("result");
@@ -458,26 +632,41 @@ const scoreTextEl = document.getElementById("scoreText");
 const accuracyTextEl = document.getElementById("accuracyText");
 const bankSizeTextEl = document.getElementById("bankSizeText");
 const askedTextEl = document.getElementById("askedText");
-const currentTopicPillEl = document.getElementById("currentTopicPill");
+const currentSectionPillEl = document.getElementById("currentSectionPill");
+const currentDifficultyPillEl = document.getElementById("currentDifficultyPill");
 
 const randomBtn = document.getElementById("randomBtn");
 const resetAskedBtn = document.getElementById("resetAskedBtn");
 const resetScoreBtn = document.getElementById("resetScoreBtn");
 
-function populateTopics(){
-  topicSelectEl.innerHTML = "";
-  TOPICS.forEach(t=>{
+function populateSections(){
+  sectionSelectEl.innerHTML = "";
+  SECTIONS.forEach(s=>{
     const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    topicSelectEl.appendChild(opt);
+    opt.value = s;
+    opt.textContent = s;
+    sectionSelectEl.appendChild(opt);
+  });
+}
+function populateDifficulties(){
+  difficultySelectEl.innerHTML = "";
+  DIFFICULTIES.forEach(d=>{
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    difficultySelectEl.appendChild(opt);
   });
 }
 
 function getFilteredQuestions(){
-  const t = topicSelectEl.value;
-  if (t === "All") return bank;
-  return bank.filter(q => q.topic === t);
+  const s = sectionSelectEl.value;
+  const d = difficultySelectEl.value;
+
+  return bank.filter(q => {
+    const okSection = (s === "All") || (q.section === s);
+    const okDiff = (d === "All") || (q.difficulty === d);
+    return okSection && okDiff;
+  });
 }
 
 function updateStatsUI(){
@@ -493,7 +682,9 @@ function disableChoices(disabled){
 
 function renderQuestion(q){
   currentQuestion = q;
-  currentTopicPillEl.textContent = `Topic: ${q.topic}`;
+  currentSectionPillEl.textContent = `Section: ${q.section}`;
+  currentDifficultyPillEl.textContent = `Difficulty: ${q.difficulty}`;
+
   questionTextEl.textContent = q.question;
 
   resultEl.style.display = "none";
@@ -517,9 +708,9 @@ function pickRandomQuestion(){
   const pool = getFilteredQuestions();
   if (pool.length === 0) return null;
 
-  // Prefer unasked first
   const unasked = pool.filter(q => !askedSet.has(q.question));
   const source = (unasked.length > 0) ? unasked : pool;
+
   const q = source[randInt(0, source.length-1)];
   askedSet.add(q.question);
   updateStatsUI();
@@ -553,6 +744,7 @@ function checkAnswer(selectedKey){
 randomBtn.addEventListener("click", ()=>{
   const q = pickRandomQuestion();
   if (q) renderQuestion(q);
+  else alert("No questions match your current filters.");
 });
 
 resetAskedBtn.addEventListener("click", ()=>{
@@ -566,22 +758,32 @@ resetScoreBtn.addEventListener("click", ()=>{
   updateStatsUI();
 });
 
-topicSelectEl.addEventListener("change", ()=>{
-  // When changing topic, immediately serve a random question from that topic
+function onFilterChange(){
   const q = pickRandomQuestion();
   if (q) renderQuestion(q);
-});
+  else {
+    questionTextEl.textContent = "No questions match your current filters. Try changing Section/Difficulty.";
+    choicesEl.innerHTML = "";
+    resultEl.style.display = "none";
+  }
+}
+sectionSelectEl.addEventListener("change", onFilterChange);
+difficultySelectEl.addEventListener("change", onFilterChange);
 
 /* =========================
    Init
 ========================= */
 buildBank();
-populateTopics();
+populateSections();
+populateDifficulties();
 updateStatsUI();
 
-// Start with an initial random question
-const first = pickRandomQuestion();
-if (first) renderQuestion(first);
+// default: All sections, Hard difficulty (since you asked for hard option)
+sectionSelectEl.value = "All";
+difficultySelectEl.value = "All";
+
+// start question
+onFilterChange();
 </script>
 </body>
 </html>

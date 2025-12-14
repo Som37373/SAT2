@@ -1,650 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Free SAT Practice</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 24px;
-      line-height: 1.5;
-    }
-    h1 { margin-bottom: 8px; }
-    .subtle { color: #555; margin-top: 0; }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 18px;
-      margin-top: 16px;
-    }
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    select, button {
-      font-size: 16px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      background: #fff;
-    }
-    button { cursor: pointer; }
-    button:hover { background: #f6f6f6; }
-    button:disabled { cursor: not-allowed; opacity: 0.6; }
-    .choices {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    .choiceBtn { text-align: left; width: 100%; }
-    .questionText {
-      white-space: pre-wrap;
-      font-size: 18px;
-      margin: 12px 0 0;
-    }
-    .passage {
-      white-space: pre-wrap;
-      background: #fafafa;
-      border: 1px solid #eee;
-      border-radius: 10px;
-      padding: 12px;
-      margin-top: 12px;
-      display: none;
-    }
-    .result {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: #fafafa;
-      white-space: pre-wrap;
-      display:none;
-    }
-    .correct { border-color: #2e7d32; background: #eef8ef; }
-    .incorrect { border-color: #c62828; background: #fdeeee; }
-    .scoreBox {
-      margin-top: 12px;
-      border: 1px solid #eee;
-      border-radius: 10px;
-      padding: 12px;
-      background: #fbfbfb;
-    }
-    .scoreLine {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .footer {
-      margin-top: 28px;
-      font-size: 12px;
-      color: #666;
-      border-top: 1px solid #eee;
-      padding-top: 14px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Free SAT Practice</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 850px;
+  margin: auto;
+  padding: 20px;
+}
+.card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 18px;
+  margin-top: 16px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+select, button {
+  padding: 10px;
+  font-size: 16px;
+}
+button { cursor: pointer; }
+button:disabled { opacity: 0.6; }
+.choices button {
+  width: 100%;
+  margin-top: 8px;
+  text-align: left;
+}
+.result {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  display: none;
+}
+.correct { background: #e8f5e9; border: 1px solid #2e7d32; }
+.incorrect { background: #fdecea; border: 1px solid #c62828; }
+.footer {
+  margin-top: 25px;
+  font-size: 12px;
+  color: #666;
+}
+</style>
 </head>
+
 <body>
-  <h1>Free SAT Practice</h1>
-  <p class="subtle">Choose a section, pick a question, answer, and track your score.</p>
 
-  <div class="card">
-    <div class="row">
-      <label for="sectionSelect"><strong>Section:</strong></label>
-      <select id="sectionSelect"></select>
+<h1>Free SAT Practice</h1>
 
-      <label for="questionSelect"><strong>Question:</strong></label>
-      <select id="questionSelect"></select>
-
-      <button id="nextBtn" type="button">Next</button>
-      <button id="randomBtn" type="button">Random</button>
-      <button id="resetScoreBtn" type="button">Reset Score</button>
-    </div>
-
-    <div class="scoreBox">
-      <div class="scoreLine">
-        <div><strong>Score:</strong> <span id="scoreText">0 / 0</span></div>
-        <div><strong>Accuracy:</strong> <span id="accuracyText">0%</span></div>
-      </div>
-      <div class="scoreLine" style="margin-top:6px;">
-        <div><strong>Current Section:</strong> <span id="sectionScoreText">0 / 0</span></div>
-        <div><strong>Section Accuracy:</strong> <span id="sectionAccuracyText">0%</span></div>
-      </div>
-    </div>
-
-    <div id="passage" class="passage"></div>
-    <p id="questionText" class="questionText"></p>
-
-    <div id="choices" class="choices"></div>
-    <div id="result" class="result"></div>
+<div class="card">
+  <div class="row">
+    <select id="sectionSelect"></select>
+    <select id="questionSelect"></select>
+    <button id="nextBtn">Next</button>
+    <button id="randomBtn">Random</button>
+    <button id="resetScoreBtn">Reset Score</button>
   </div>
 
-  <div class="footer">
-    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
-    All questions on this page are original practice questions.
-  </div>
+  <p><strong>Score:</strong> <span id="scoreText">0 / 0</span></p>
 
-  <script>
-    // -------------------------
-    // QUESTION BANK (ORIGINAL)
-    // -------------------------
-    const bank = {
-      "Math (Algebra)": [
-        {
-          title: "Math Q1",
-          passage: "",
-          question: "If x + 7 = 15, what is the value of x?",
-          choices: [
-            { key: "A", text: "6" },
-            { key: "B", text: "7" },
-            { key: "C", text: "8" },
-            { key: "D", text: "22" }
-          ],
-          answer: "C",
-          explanation: "Subtract 7 from both sides:\n x = 15 - 7 = 8"
-        },
-        {
-          title: "Math Q2",
-          passage: "",
-          question: "Solve for y:\n4y = 20",
-          choices: [
-            { key: "A", text: "4" },
-            { key: "B", text: "5" },
-            { key: "C", text: "10" },
-            { key: "D", text: "16" }
-          ],
-          answer: "B",
-          explanation: "Divide both sides by 4:\n y = 20 ÷ 4 = 5"
-        },
-        {
-          title: "Math Q3",
-          passage: "",
-          question: "If 3x - 5 = 10, what is x?",
-          choices: [
-            { key: "A", text: "3" },
-            { key: "B", text: "5" },
-            { key: "C", text: "10" },
-            { key: "D", text: "15" }
-          ],
-          answer: "B",
-          explanation: "Add 5 to both sides: 3x = 15\nDivide by 3: x = 5"
-        },
-        {
-          title: "Math Q4",
-          passage: "",
-          question: "Which expression is equivalent to 2(x + 4)?",
-          choices: [
-            { key: "A", text: "2x + 4" },
-            { key: "B", text: "2x + 6" },
-            { key: "C", text: "2x + 8" },
-            { key: "D", text: "x + 8" }
-          ],
-          answer: "C",
-          explanation: "Distribute the 2:\n 2(x + 4) = 2x + 8"
-        },
-        {
-          title: "Math Q5",
-          passage: "",
-          question: "If x/5 = 6, what is x?",
-          choices: [
-            { key: "A", text: "11" },
-            { key: "B", text: "30" },
-            { key: "C", text: "35" },
-            { key: "D", text: "60" }
-          ],
-          answer: "B",
-          explanation: "Multiply both sides by 5:\n x = 6 × 5 = 30"
-        },
-        {
-          title: "Math Q6",
-          passage: "",
-          question: "Solve:\nx + x = 14",
-          choices: [
-            { key: "A", text: "6" },
-            { key: "B", text: "7" },
-            { key: "C", text: "14" },
-            { key: "D", text: "28" }
-          ],
-          answer: "B",
-          explanation: "Combine like terms:\n 2x = 14\nDivide by 2:\n x = 7"
-        },
-        {
-          title: "Math Q7",
-          passage: "",
-          question: "If 5x = 25, what is the value of 2x?",
-          choices: [
-            { key: "A", text: "5" },
-            { key: "B", text: "10" },
-            { key: "C", text: "25" },
-            { key: "D", text: "50" }
-          ],
-          answer: "B",
-          explanation: "First solve for x:\n x = 25 ÷ 5 = 5\nThen compute 2x:\n 2x = 2 × 5 = 10"
-        },
-        {
-          title: "Math Q8",
-          passage: "",
-          question: "Which value of x satisfies x - 9 = 3?",
-          choices: [
-            { key: "A", text: "6" },
-            { key: "B", text: "9" },
-            { key: "C", text: "12" },
-            { key: "D", text: "27" }
-          ],
-          answer: "C",
-          explanation: "Add 9 to both sides:\n x = 3 + 9 = 12"
-        },
-        {
-          title: "Math Q9",
-          passage: "",
-          question: "If 7 + 2x = 13, what is x?",
-          choices: [
-            { key: "A", text: "2" },
-            { key: "B", text: "3" },
-            { key: "C", text: "6" },
-            { key: "D", text: "10" }
-          ],
-          answer: "B",
-          explanation: "Subtract 7:\n 2x = 6\nDivide by 2:\n x = 3"
-        },
-        {
-          title: "Math Q10",
-          passage: "",
-          question: "Which equation has the solution x = 4?",
-          choices: [
-            { key: "A", text: "x + 3 = 6" },
-            { key: "B", text: "2x = 8" },
-            { key: "C", text: "x - 5 = 1" },
-            { key: "D", text: "3x = 15" }
-          ],
-          answer: "B",
-          explanation: "Test x = 4:\n2x = 2(4) = 8, so 2x = 8 is true."
-        }
-      ],
+  <div id="passage"></div>
+  <p id="questionText"></p>
+  <div class="choices" id="choices"></div>
+  <div class="result" id="result"></div>
+</div>
 
-      "Math (Problem Solving & Data Analysis)": [
-        {
-          title: "PSDA Q1",
-          passage: "",
-          question: "A store is having a 20% off sale. A jacket originally costs $60. What is the sale price?",
-          choices: [
-            { key: "A", text: "$12" },
-            { key: "B", text: "$40" },
-            { key: "C", text: "$48" },
-            { key: "D", text: "$72" }
-          ],
-          answer: "C",
-          explanation: "20% of 60 is 0.20×60 = 12. Subtract the discount: 60 − 12 = 48."
-        },
-        {
-          title: "PSDA Q2",
-          passage: "",
-          question: "A recipe uses 3 cups of flour for 8 servings. How many cups of flour are needed for 20 servings (at the same rate)?",
-          choices: [
-            { key: "A", text: "6.5" },
-            { key: "B", text: "7.5" },
-            { key: "C", text: "8" },
-            { key: "D", text: "9" }
-          ],
-          answer: "B",
-          explanation: "Use a proportion: 3/8 = x/20 ⇒ x = 3×20/8 = 7.5 cups."
-        },
-        {
-          title: "PSDA Q3",
-          passage: "",
-          question: "A phone plan costs $30 per month plus $0.10 per text. If the total bill was $45, how many texts were sent?",
-          choices: [
-            { key: "A", text: "50" },
-            { key: "B", text: "100" },
-            { key: "C", text: "150" },
-            { key: "D", text: "450" }
-          ],
-          answer: "C",
-          explanation: "45 = 30 + 0.10t ⇒ 0.10t = 15 ⇒ t = 150."
-        },
-        {
-          title: "PSDA Q4",
-          passage:
-`Table: Hours studied and test score
+<div class="footer">
+SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
+</div>
 
-Hours:  1   2   3   4
-Score: 70  74  78  82`,
-          question: "Based on the table, what is the average increase in score per additional hour studied?",
-          choices: [
-            { key: "A", text: "2 points per hour" },
-            { key: "B", text: "3 points per hour" },
-            { key: "C", text: "4 points per hour" },
-            { key: "D", text: "12 points per hour" }
-          ],
-          answer: "C",
-          explanation: "Increase from 70 to 82 is 12 points over 3 hours. 12/3 = 4 points/hour."
-        },
-        {
-          title: "PSDA Q5",
-          passage: "",
-          question: "A bag contains 5 red marbles and 3 blue marbles. A marble is chosen at random. What is the probability of choosing a blue marble?",
-          choices: [
-            { key: "A", text: "3/5" },
-            { key: "B", text: "3/8" },
-            { key: "C", text: "5/8" },
-            { key: "D", text: "1/3" }
-          ],
-          answer: "B",
-          explanation: "Total marbles = 8. Blue marbles = 3. Probability = 3/8."
-        },
-        {
-          title: "PSDA Q6",
-          passage: "",
-          question: "A class has 24 students. If 75% of the students passed an exam, how many students passed?",
-          choices: [
-            { key: "A", text: "12" },
-            { key: "B", text: "16" },
-            { key: "C", text: "18" },
-            { key: "D", text: "20" }
-          ],
-          answer: "C",
-          explanation: "0.75 × 24 = 18."
-        },
-        {
-          title: "PSDA Q7",
-          passage: "",
-          question: "A car travels 120 miles in 3 hours. At the same speed, how many miles will it travel in 5 hours?",
-          choices: [
-            { key: "A", text: "160" },
-            { key: "B", text: "180" },
-            { key: "C", text: "200" },
-            { key: "D", text: "240" }
-          ],
-          answer: "C",
-          explanation: "Speed = 120/3 = 40 mph. In 5 hours: 40×5 = 200."
-        },
-        {
-          title: "PSDA Q8",
-          passage: "",
-          question: "The mean (average) of 4 numbers is 12. The sum of the first three numbers is 33. What is the fourth number?",
-          choices: [
-            { key: "A", text: "9" },
-            { key: "B", text: "12" },
-            { key: "C", text: "15" },
-            { key: "D", text: "48" }
-          ],
-          answer: "C",
-          explanation: "Total sum = 12×4 = 48. Fourth = 48 − 33 = 15."
-        },
-        {
-          title: "PSDA Q9",
-          passage: "",
-          question: "A survey of 200 people found that 30% prefer tea. How many people prefer tea?",
-          choices: [
-            { key: "A", text: "30" },
-            { key: "B", text: "60" },
-            { key: "C", text: "90" },
-            { key: "D", text: "170" }
-          ],
-          answer: "B",
-          explanation: "0.30 × 200 = 60."
-        },
-        {
-          title: "PSDA Q10",
-          passage: "",
-          question: "A store sold 80 items on Monday and 100 items on Tuesday. By what percent did sales increase from Monday to Tuesday?",
-          choices: [
-            { key: "A", text: "20%" },
-            { key: "B", text: "25%" },
-            { key: "C", text: "80%" },
-            { key: "D", text: "125%" }
-          ],
-          answer: "B",
-          explanation: "Increase = 20. Percent increase = 20/80 = 0.25 = 25%."
-        }
-      ],
+<script>
+const bank = {
 
-      "Reading": [
-        {
-          title: "Reading Q1",
-          passage:
-`Passage:
-A community garden opened on a vacant lot near a busy street. At first, only a few neighbors visited. Over time, as vegetables began to grow, more people stopped by to water plants, pull weeds, and talk. Soon, the garden became a meeting place where residents shared recipes and planned neighborhood projects.`,
-          question: "Which choice best states the main idea of the passage?",
-          choices: [
-            { key: "A", text: "Community gardens are difficult to maintain without expert help." },
-            { key: "B", text: "A garden project helped strengthen connections among neighbors." },
-            { key: "C", text: "Vacant lots are the best locations for planting vegetables." },
-            { key: "D", text: "People prefer gardening to other neighborhood activities." }
-          ],
-          answer: "B",
-          explanation: "The passage focuses on how the garden gradually became a gathering place and improved community connections."
-        },
-        {
-          title: "Reading Q2",
-          passage:
-`Passage:
-When Maya started practicing the piano, she played each piece quickly to “get it right.” Her teacher suggested something different: slow practice, focusing on difficult measures. Maya tried it, and although it felt frustrating at first, she began making fewer mistakes and gained confidence.`,
-          question: "What does the passage suggest about Maya’s change in practice strategy?",
-          choices: [
-            { key: "A", text: "It made her practice sessions shorter but less effective." },
-            { key: "B", text: "It helped her improve by targeting challenging parts carefully." },
-            { key: "C", text: "It caused her to lose interest in learning new music." },
-            { key: "D", text: "It worked only because she practiced faster than before." }
-          ],
-          answer: "B",
-          explanation: "Slow practice let Maya focus on the hardest measures, leading to fewer mistakes and more confidence."
-        },
-        {
-          title: "Reading Q3",
-          passage:
-`Passage:
-A scientist recorded daily temperatures for a month. Instead of looking at every number separately, she calculated the average and noticed a steady increase near the end of the month. The average helped her summarize the data while still revealing a clear trend.`,
-          question: "In the passage, the average temperature is used mainly to",
-          choices: [
-            { key: "A", text: "replace all individual data points because they are unimportant." },
-            { key: "B", text: "summarize the data and help identify a pattern." },
-            { key: "C", text: "prove that temperatures never decrease during a month." },
-            { key: "D", text: "show that the scientist recorded temperatures incorrectly." }
-          ],
-          answer: "B",
-          explanation: "The passage says the average summarizes the data while still showing a trend."
-        }
-      ]
-    };
+"Math (Algebra)": [
+ {title:"A1",question:"If x + 7 = 15, what is x?",choices:[{key:"A",text:"6"},{key:"B",text:"7"},{key:"C",text:"8"},{key:"D",text:"22"}],answer:"C",explanation:"15 − 7 = 8"},
+ {title:"A2",question:"4y = 20. What is y?",choices:[{key:"A",text:"4"},{key:"B",text:"5"},{key:"C",text:"10"},{key:"D",text:"16"}],answer:"B",explanation:"20 ÷ 4 = 5"},
+ {title:"A3",question:"3x − 5 = 10. What is x?",choices:[{key:"A",text:"3"},{key:"B",text:"5"},{key:"C",text:"10"},{key:"D",text:"15"}],answer:"B",explanation:"3x = 15 → x = 5"},
+ {title:"A4",question:"2(x + 4) =",choices:[{key:"A",text:"2x + 4"},{key:"B",text:"2x + 6"},{key:"C",text:"2x + 8"},{key:"D",text:"x + 8"}],answer:"C",explanation:"Distribute 2"},
+ {title:"A5",question:"x/5 = 6. What is x?",choices:[{key:"A",text:"11"},{key:"B",text:"30"},{key:"C",text:"35"},{key:"D",text:"60"}],answer:"B",explanation:"6 × 5 = 30"}
+],
 
-    // -------------------------
-    // STATE (SCORE)
-    // -------------------------
-    const score = {
-      totalCorrect: 0,
-      totalAttempts: 0,
-      perSection: {}
-    };
+"Math (Problem Solving & Data Analysis)": [
+ {title:"PSDA1",question:"20% off $60 is:",choices:[{key:"A",text:"$12"},{key:"B",text:"$40"},{key:"C",text:"$48"},{key:"D",text:"$72"}],answer:"C",explanation:"0.2×60=12; 60−12=48"},
+ {title:"PSDA2",question:"3 cups for 8 servings. Cups for 20 servings?",choices:[{key:"A",text:"6.5"},{key:"B",text:"7.5"},{key:"C",text:"8"},{key:"D",text:"9"}],answer:"B",explanation:"3×20/8 = 7.5"},
+ {title:"PSDA3",question:"30 + 0.10t = 45. Find t.",choices:[{key:"A",text:"50"},{key:"B",text:"100"},{key:"C",text:"150"},{key:"D",text:"450"}],answer:"C",explanation:"0.10t=15 → t=150"},
+ {title:"PSDA4",question:"Blue marbles: 3 of 8. Probability?",choices:[{key:"A",text:"3/5"},{key:"B",text:"3/8"},{key:"C",text:"5/8"},{key:"D",text:"1/3"}],answer:"B",explanation:"3/8"},
+ {title:"PSDA5",question:"75% of 24 students passed. How many?",choices:[{key:"A",text:"12"},{key:"B",text:"16"},{key:"C",text:"18"},{key:"D",text:"20"}],answer:"C",explanation:"0.75×24=18"}
+],
 
-    function ensureSectionScore(sectionName) {
-      if (!score.perSection[sectionName]) {
-        score.perSection[sectionName] = { correct: 0, attempts: 0 };
-      }
-    }
+"Math (Passport to Advanced Math)": [
+ {title:"PAM1",question:"x² − 9 = 0",choices:[{key:"A",text:"9"},{key:"B",text:"−9"},{key:"C",text:"±3"},{key:"D",text:"0"}],answer:"C",explanation:"x²=9"},
+ {title:"PAM2",question:"(x−4)(x+2)=0",choices:[{key:"A",text:"4 only"},{key:"B",text:"−2 only"},{key:"C",text:"2, −4"},{key:"D",text:"4, −2"}],answer:"D",explanation:"Set factors to 0"},
+ {title:"PAM3",question:"(2x²+4x)/(2x)",choices:[{key:"A",text:"x+2"},{key:"B",text:"x²+2x"},{key:"C",text:"2x+4"},{key:"D",text:"x²+4"}],answer:"A",explanation:"Cancel 2x"},
+ {title:"PAM4",question:"3^x = 27",choices:[{key:"A",text:"2"},{key:"B",text:"3"},{key:"C",text:"4"},{key:"D",text:"9"}],answer:"B",explanation:"27=3³"},
+ {title:"PAM5",question:"(x³)(x²) =",choices:[{key:"A",text:"x⁵"},{key:"B",text:"x⁶"},{key:"C",text:"x⁹"},{key:"D",text:"3x²"}],answer:"A",explanation:"Add exponents"},
+ {title:"PAM6",question:"2x+y=11, x−y=1",choices:[{key:"A",text:"(4,3)"},{key:"B",text:"(3,5)"},{key:"C",text:"(4,4)"},{key:"D",text:"(5,1)"}],answer:"A",explanation:"Solve system"},
+ {title:"PAM7",question:"(x+1)/(x−2)=2",choices:[{key:"A",text:"1"},{key:"B",text:"3"},{key:"C",text:"5"},{key:"D",text:"−1"}],answer:"C",explanation:"x+1=2x−4"},
+ {title:"PAM8",question:"x²+6x+5=0",choices:[{key:"A",text:"−1, −5"},{key:"B",text:"1,5"},{key:"C",text:"−2,−3"},{key:"D",text:"0,−6"}],answer:"A",explanation:"Factor"},
+ {title:"PAM9",question:"f(x)=x²−2x. f(5)?",choices:[{key:"A",text:"10"},{key:"B",text:"15"},{key:"C",text:"20"},{key:"D",text:"25"}],answer:"B",explanation:"25−10=15"},
+ {title:"PAM10",question:"50 doubles every 4 hrs. After 12 hrs?",choices:[{key:"A",text:"100"},{key:"B",text:"200"},{key:"C",text:"300"},{key:"D",text:"400"}],answer:"D",explanation:"3 doubles"}
+],
 
-    // -------------------------
-    // DOM
-    // -------------------------
-    const sectionSelectEl = document.getElementById("sectionSelect");
-    const questionSelectEl = document.getElementById("questionSelect");
-    const questionTextEl = document.getElementById("questionText");
-    const passageEl = document.getElementById("passage");
-    const choicesEl = document.getElementById("choices");
-    const resultEl = document.getElementById("result");
+"Reading": [
+ {title:"R1",question:"Main idea of a community garden passage?",choices:[{key:"A",text:"Gardening is hard"},{key:"B",text:"Garden built community"},{key:"C",text:"Vacant lots are bad"},{key:"D",text:"People like vegetables"}],answer:"B",explanation:"Focus is community connection"}
+]
 
-    const nextBtn = document.getElementById("nextBtn");
-    const randomBtn = document.getElementById("randomBtn");
-    const resetScoreBtn = document.getElementById("resetScoreBtn");
+};
 
-    const scoreTextEl = document.getElementById("scoreText");
-    const accuracyTextEl = document.getElementById("accuracyText");
-    const sectionScoreTextEl = document.getElementById("sectionScoreText");
-    const sectionAccuracyTextEl = document.getElementById("sectionAccuracyText");
+let score=0, attempts=0;
 
-    let hasAnsweredCurrent = false;
+const sectionSelect=document.getElementById("sectionSelect");
+const questionSelect=document.getElementById("questionSelect");
+const questionText=document.getElementById("questionText");
+const choices=document.getElementById("choices");
+const result=document.getElementById("result");
+const scoreText=document.getElementById("scoreText");
 
-    function percent(correct, attempts) {
-      if (attempts === 0) return "0%";
-      return Math.round((correct / attempts) * 100) + "%";
-    }
+function loadSections(){
+  sectionSelect.innerHTML="";
+  Object.keys(bank).forEach(s=>{
+    let o=document.createElement("option");
+    o.value=s;o.textContent=s;
+    sectionSelect.appendChild(o);
+  });
+}
 
-    function updateScoreUI() {
-      const sectionName = sectionSelectEl.value;
-      ensureSectionScore(sectionName);
+function loadQuestions(){
+  questionSelect.innerHTML="";
+  bank[sectionSelect.value].forEach((q,i)=>{
+    let o=document.createElement("option");
+    o.value=i;o.textContent=q.title;
+    questionSelect.appendChild(o);
+  });
+  render();
+}
 
-      scoreTextEl.textContent = `${score.totalCorrect} / ${score.totalAttempts}`;
-      accuracyTextEl.textContent = percent(score.totalCorrect, score.totalAttempts);
+function render(){
+  const q=bank[sectionSelect.value][questionSelect.value];
+  questionText.textContent=q.question;
+  choices.innerHTML="";
+  result.style.display="none";
+  q.choices.forEach(c=>{
+    let b=document.createElement("button");
+    b.textContent=`${c.key}) ${c.text}`;
+    b.onclick=()=>check(c.key,q);
+    choices.appendChild(b);
+  });
+}
 
-      const s = score.perSection[sectionName];
-      sectionScoreTextEl.textContent = `${s.correct} / ${s.attempts}`;
-      sectionAccuracyTextEl.textContent = percent(s.correct, s.attempts);
-    }
+function check(k,q){
+  attempts++;
+  if(k===q.answer){score++;result.className="result correct";}
+  else{result.className="result incorrect";}
+  scoreText.textContent=`${score} / ${attempts}`;
+  result.style.display="block";
+  result.textContent=`Correct Answer: ${q.answer}\n${q.explanation}`;
+}
 
-    function populateSectionDropdown() {
-      sectionSelectEl.innerHTML = "";
-      Object.keys(bank).forEach(sectionName => {
-        const opt = document.createElement("option");
-        opt.value = sectionName;
-        opt.textContent = sectionName;
-        sectionSelectEl.appendChild(opt);
-        ensureSectionScore(sectionName);
-      });
-    }
+document.getElementById("nextBtn").onclick=()=>{
+  questionSelect.value=(+questionSelect.value+1)%bank[sectionSelect.value].length;
+  render();
+};
+document.getElementById("randomBtn").onclick=()=>{
+  questionSelect.value=Math.floor(Math.random()*bank[sectionSelect.value].length);
+  render();
+};
+document.getElementById("resetScoreBtn").onclick=()=>{score=0;attempts=0;scoreText.textContent="0 / 0";};
 
-    function populateQuestionDropdown(sectionName) {
-      const questions = bank[sectionName];
-      questionSelectEl.innerHTML = "";
-      questions.forEach((q, idx) => {
-        const opt = document.createElement("option");
-        opt.value = idx;
-        opt.textContent = q.title;
-        questionSelectEl.appendChild(opt);
-      });
-    }
+sectionSelect.onchange=loadQuestions;
+questionSelect.onchange=render;
 
-    function disableChoiceButtons(disabled) {
-      const btns = choicesEl.querySelectorAll("button");
-      btns.forEach(b => b.disabled = disabled);
-    }
+loadSections();
+loadQuestions();
+</script>
 
-    function renderQuestion(sectionName, index) {
-      const q = bank[sectionName][index];
-
-      hasAnsweredCurrent = false;
-      disableChoiceButtons(false);
-
-      resultEl.style.display = "none";
-      resultEl.classList.remove("correct", "incorrect");
-      resultEl.textContent = "";
-
-      if (q.passage && q.passage.trim().length > 0) {
-        passageEl.style.display = "block";
-        passageEl.textContent = q.passage;
-      } else {
-        passageEl.style.display = "none";
-        passageEl.textContent = "";
-      }
-
-      questionTextEl.textContent = q.question;
-
-      choicesEl.innerHTML = "";
-      q.choices.forEach(choice => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "choiceBtn";
-        btn.textContent = `${choice.key}) ${choice.text}`;
-        btn.onclick = () => checkAnswer(choice.key, q, sectionName);
-        choicesEl.appendChild(btn);
-      });
-
-      updateScoreUI();
-    }
-
-    function checkAnswer(selectedKey, q, sectionName) {
-      if (hasAnsweredCurrent) return;
-      hasAnsweredCurrent = true;
-
-      const isCorrect = selectedKey === q.answer;
-
-      score.totalAttempts += 1;
-      ensureSectionScore(sectionName);
-      score.perSection[sectionName].attempts += 1;
-
-      if (isCorrect) {
-        score.totalCorrect += 1;
-        score.perSection[sectionName].correct += 1;
-      }
-
-      updateScoreUI();
-
-      resultEl.style.display = "block";
-      resultEl.classList.remove("correct", "incorrect");
-      resultEl.classList.add(isCorrect ? "correct" : "incorrect");
-
-      const correctChoice = q.choices.find(c => c.key === q.answer);
-      const correctText = correctChoice ? `${q.answer}) ${correctChoice.text}` : q.answer;
-
-      resultEl.textContent =
-        (isCorrect ? "✅ Correct!\n\n" : "❌ Not quite.\n\n") +
-        `Correct Answer: ${correctText}\n\n` +
-        `Explanation:\n${q.explanation}`;
-
-      disableChoiceButtons(true);
-    }
-
-    function goNext() {
-      const sectionName = sectionSelectEl.value;
-      const len = bank[sectionName].length;
-      const current = Number(questionSelectEl.value);
-      const next = (current + 1) % len;
-      questionSelectEl.value = String(next);
-      renderQuestion(sectionName, next);
-    }
-
-    function goRandom() {
-      const sectionName = sectionSelectEl.value;
-      const len = bank[sectionName].length;
-      const rand = Math.floor(Math.random() * len);
-      questionSelectEl.value = String(rand);
-      renderQuestion(sectionName, rand);
-    }
-
-    function resetScore() {
-      score.totalCorrect = 0;
-      score.totalAttempts = 0;
-      Object.keys(score.perSection).forEach(k => {
-        score.perSection[k].correct = 0;
-        score.perSection[k].attempts = 0;
-      });
-      updateScoreUI();
-    }
-
-    // INIT
-    populateSectionDropdown();
-    populateQuestionDropdown(sectionSelectEl.value);
-
-    sectionSelectEl.addEventListener("change", () => {
-      populateQuestionDropdown(sectionSelectEl.value);
-      questionSelectEl.value = "0";
-      renderQuestion(sectionSelectEl.value, 0);
-    });
-
-    questionSelectEl.addEventListener("change", () => {
-      renderQuestion(sectionSelectEl.value, Number(questionSelectEl.value));
-    });
-
-    nextBtn.addEventListener("click", goNext);
-    randomBtn.addEventListener("click", goRandom);
-    resetScoreBtn.addEventListener("click", resetScore);
-
-    renderQuestion(sectionSelectEl.value, 0);
-  </script>
 </body>
 </html>

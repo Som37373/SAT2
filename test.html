@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SAT Test Mode</title>
+  <style>
+    :root{
+      --border:#ddd;
+      --muted:#555;
+      --bg:#fff;
+      --soft:#fafafa;
+      --good:#2e7d32;
+      --bad:#c62828;
+    }
+    body{
+      font-family: Arial, sans-serif;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.4;
+      background: var(--bg);
+      color:#111;
+    }
+    h1{ margin:0 0 6px; }
+    .subtle{ color: var(--muted); margin:0 0 14px; }
+    .card{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      margin-top:14px;
+      background:#fff;
+    }
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    label{ font-weight:700; }
+    select, button{
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+    button{ cursor:pointer; }
+    button:hover{ background:#f7f7f7; }
+    button:disabled{ cursor:not-allowed; opacity:.6; }
+
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content: space-between;
+    }
+    .pill{
+      display:inline-block;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:#fff;
+      font-size:13px;
+      color:#333;
+      white-space:nowrap;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 300px;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px){
+      .layout{ grid-template-columns: 1fr; }
+    }
+
+    .passage{
+      display:none;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      background: var(--soft);
+      white-space: pre-wrap;
+    }
+    .question{
+      margin-top: 12px;
+      font-size: 18px;
+      white-space: pre-wrap;
+    }
+
+    .choices{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .choiceBtn{
+      text-align:left;
+      width:100%;
+    }
+
+    .navBtns{
+      margin-top: 12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .sidebar{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background:#fff;
+      height: fit-content;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .qchip{
+      border:1px solid #ccc;
+      border-radius: 10px;
+      padding: 8px 0;
+      text-align:center;
+      background:#fff;
+      cursor:pointer;
+      font-size: 13px;
+      user-select:none;
+    }
+    .qchip:hover{ background:#f7f7f7; }
+    .qchip.answered{ border-color:#999; background:#fdfdfd; }
+    .qchip.flagged{ outline: 2px solid #111; }
+    .qchip.current{ background:#111; color:#fff; border-color:#111; }
+
+    .result{
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border:1px solid var(--border);
+      background: var(--soft);
+      display:none;
+      white-space: pre-wrap;
+    }
+    .correct{ border-color: var(--good); background:#eef8ef; }
+    .incorrect{ border-color: var(--bad); background:#fdeeee; }
+
+    .reviewRow{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .reviewList{
+      margin-top: 10px;
+      display:grid;
+      gap:10px;
+    }
+    .reviewItem{
+      border:1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background:#fff;
+    }
+    .reviewItem .mini{
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .footer{
+      margin-top: 26px;
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #eee;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- START SCREEN -->
+  <div id="startScreen" class="card">
+    <h1>SAT Test Mode</h1>
+    <p class="subtle">Timed, sectioned test flow. No explanations until you submit (just like test day).</p>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="domainSelect">Test:</label>
+      <select id="domainSelect"></select>
+
+      <label for="timerSelect">Timer:</label>
+      <select id="timerSelect">
+        <option value="on">Real SAT timing</option>
+        <option value="off">No timer</option>
+      </select>
+
+      <label for="lengthSelect">Length:</label>
+      <select id="lengthSelect">
+        <option value="real">Realistic full test (2 modules)</option>
+        <option value="mini10">Mini test (10 questions)</option>
+        <option value="mini20">Mini test (20 questions)</option>
+      </select>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="subtle" style="margin:0;">
+        <strong>Realistic timing used here:</strong><br/>
+        • Reading/Writing: 2 modules × 27 questions, 32 minutes each<br/>
+        • Math: 2 modules × 22 questions, 35 minutes each
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="startBtn" type="button">Start Test</button>
+      <button id="resetAllBtn" type="button">Reset Saved Test</button>
+    </div>
+
+    <div class="subtle" style="margin-top:10px;">
+      Tip: This page saves your current test in your browser automatically. If it ever “sticks,” click “Reset Saved Test.”
+    </div>
+  </div>
+
+  <!-- TEST SCREEN -->
+  <div id="testScreen" class="card" style="display:none;">
+    <div class="topbar">
+      <div class="row">
+        <span class="pill" id="pillDomain">Domain: —</span>
+        <span class="pill" id="pillModule">Module: —</span>
+        <span class="pill" id="pillProgress">Q — / —</span>
+        <span class="pill" id="pillFlag">Flagged: 0</span>
+      </div>
+      <div class="row">
+        <span class="pill" id="pillTimer">Time: —</span>
+        <button id="flagBtn" type="button">Flag</button>
+        <button id="endBtn" type="button">End & Submit</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div id="passage" class="passage"></div>
+        <div id="questionText" class="question"></div>
+        <div id="choices" class="choices"></div>
+
+        <div class="navBtns">
+          <button id="prevBtn" type="button">Back</button>
+          <button id="nextBtn" type="button">Next</button>
+        </div>
+
+        <div id="result" class="result"></div>
+      </div>
+
+      <div class="sidebar">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Question Grid</strong>
+          <button id="reviewBtn" type="button">Review Page</button>
+        </div>
+        <div class="subtle" style="margin-top:6px;">
+          Click a number to jump. Black outline = flagged. Dark = current.
+        </div>
+        <div id="grid" class="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVIEW SCREEN -->
+  <div id="reviewScreen" class="card" style="display:none;">
+    <h2 style="margin:0 0 6px;">Review & Submit</h2>
+    <div class="subtle">You can jump back to any question. Explanations show only after submitting.</div>
+
+    <div class="reviewRow">
+      <span class="pill" id="reviewPillSummary">—</span>
+      <span class="pill" id="reviewPillTimer">—</span>
+      <button id="backToTestBtn" type="button">Back to Test</button>
+      <button id="submitBtn" type="button">Submit for Score</button>
+    </div>
+
+    <div id="reviewList" class="reviewList"></div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="resultsScreen" class="card" style="display:none;">
+    <h2 style="margin:0 0 6px;">Results</h2>
+    <div class="reviewRow">
+      <span class="pill" id="scorePill">Score: —</span>
+      <span class="pill" id="timePill">Time: —</span>
+      <button id="newTestBtn" type="button">Start New Test</button>
+    </div>
+
+    <div id="resultsList" class="reviewList"></div>
+  </div>
+
+  <div class="footer">
+    SAT® is a trademark of the College Board. This site is not affiliated with or endorsed by the College Board.
+    Questions on this site are original practice questions.
+  </div>
+
+<script>
+/* =========================================================
+   SELF-CONTAINED QUESTION BANK (ORIGINAL)
+   - ~100 Math + ~100 Reading/Writing (same style as your practice page)
+   - You can replace/extend later or fetch from a backend
+========================================================= */
+
+// ---- utilities
+function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
+function formatFrac(n,d){
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(n,d); n/=g; d/=g;
+  if (d === 1) return String(n);
+  return `${n}/${d}`;
+}
+function makeMCQ({domain, topic, difficulty, passage="", question, correctValue, distractors, explanation}) {
+  const all = [String(correctValue), ...distractors.map(String)];
+  const unique = [];
+  for (const v of all) if (!unique.includes(v)) unique.push(v);
+  while (unique.length < 4) unique.push(String(randInt(1, 99)));
+  const choices = unique.slice(0,4).map(String);
+  shuffle(choices);
+  const letters = ["A","B","C","D"];
+  const choiceObjs = choices.map((t,i)=>({ key: letters[i], text: t }));
+  const answerKey = letters[choices.indexOf(String(correctValue))];
+  return {
+    id: `${domain}||${topic}||${difficulty}||${question}||${passage}`.slice(0, 420),
+    domain, topic, difficulty, passage,
+    question,
+    choices: choiceObjs,
+    answer: answerKey,
+    explanation
+  };
+}
+
+// ---- domains/topics
+const DOMAINS = ["Reading/Writing", "Math"];
+const RW_TOPICS = [
+  "Information and Ideas Questions",
+  "Command of Evidence (Textual)",
+  "Command of Evidence (Quantitative)",
+  "Central Ideas and Details",
+  "Inferences",
+  "Craft and Structure Questions",
+  "Words in Context",
+  "Text Structure and Purpose",
+  "Cross-Text Connections",
+  "Expression of Ideas Questions",
+  "Transitions",
+  "Rhetorical Synthesis",
+  "Standard English Conventions Questions",
+  "Boundaries",
+  "Form, Structure, and Sense"
+];
+const MATH_TOPICS = [
+  "Algebra",
+  "Math (Problem Solving & Data Analysis)",
+  "Math (Passport to Advanced Math)",
+  "Math (Additional Topics)"
+];
+
+const bank = [];
+function buildMathBank() {
+  const out = [];
+
+  // Easy/Medium (~50)
+  for (let i=0;i<12;i++){
+    const a=randInt(2,9), x=randInt(-6,10), b=randInt(-15,15), c=a*x+b;
+    out.push(makeMCQ({
+      domain:"Math", topic:"Algebra", difficulty:(i<6?"Easy":"Medium"),
+      question:`Solve for x:\n${a}x ${b>=0?"+":"-"} ${Math.abs(b)} = ${c}`,
+      correctValue:x,
+      distractors:[x+2,x-3,c],
+      explanation:`Subtract ${b} from both sides: ${a}x = ${c-b}. Divide by ${a}: x = ${x}.`
+    }));
+  }
+
+  for (let i=0;i<12;i++){
+    const type=i%3;
+    if(type===0){
+      const price=randInt(30,180), pct=[10,15,20,25,30][randInt(0,4)];
+      const disc=Math.round(price*pct/100), sale=price-disc;
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Problem Solving & Data Analysis)", difficulty:(i<6?"Easy":"Medium"),
+        question:`A ${pct}% discount is applied to a $${price} item. What is the sale price?`,
+        correctValue:sale,
+        distractors:[disc, price+disc, price - Math.round(disc/2)],
+        explanation:`Discount = ${pct}% of ${price} = ${disc}. Sale = ${price} − ${disc} = ${sale}.`
+      }));
+    } else if(type===1){
+      const red=randInt(3,9), blue=randInt(3,9), total=red+blue;
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Problem Solving & Data Analysis)", difficulty:(i<6?"Easy":"Medium"),
+        question:`A bag has ${red} red and ${blue} blue marbles. What is the probability of choosing a blue marble?`,
+        correctValue:formatFrac(blue,total),
+        distractors:[formatFrac(red,total), formatFrac(blue,red), formatFrac(1,total)],
+        explanation:`Probability = favorable/total = ${blue}/${total} = ${formatFrac(blue,total)}.`
+      }));
+    } else {
+      const miles=randInt(80,240), hours=randInt(2,6);
+      const speed=miles/hours;
+      if(!Number.isInteger(speed)){ i--; continue; }
+      const h2=randInt(4,8), d2=speed*h2;
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Problem Solving & Data Analysis)", difficulty:(i<6?"Easy":"Medium"),
+        question:`A car travels ${miles} miles in ${hours} hours at a constant speed. How many miles will it travel in ${h2} hours?`,
+        correctValue:d2,
+        distractors:[speed, d2+speed, miles+d2],
+        explanation:`Speed = ${miles}/${hours} = ${speed}. Distance = ${speed}×${h2} = ${d2}.`
+      }));
+    }
+  }
+
+  for (let i=0;i<13;i++){
+    const r1=randInt(-7,7), r2=randInt(-7,7);
+    if(r1===0 && r2===0){ i--; continue; }
+    const b=-(r1+r2), c=r1*r2;
+    out.push(makeMCQ({
+      domain:"Math", topic:"Math (Passport to Advanced Math)", difficulty:(i<6?"Easy":"Medium"),
+      question:`Solve for x:\nx^2 ${b>=0?"+":"-"} ${Math.abs(b)}x ${c>=0?"+":"-"} ${Math.abs(c)} = 0`,
+      correctValue:`x = ${r1} or x = ${r2}`,
+      distractors:[`x = ${-r1} or x = ${-r2}`, `x = ${r1+r2}`, `x = ${c}`],
+      explanation:`Factor: (x - ${r1})(x - ${r2}) = 0 ⇒ x = ${r1} or x = ${r2}.`
+    }));
+  }
+
+  for (let i=0;i<13;i++){
+    const t=i%4;
+    if(t===0){
+      const L=randInt(4,22), W=randInt(4,22);
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Additional Topics)", difficulty:(i<6?"Easy":"Medium"),
+        question:`What is the area of a rectangle with length ${L} and width ${W}?`,
+        correctValue:L*W,
+        distractors:[L+W, 2*(L+W), 2*L*W],
+        explanation:`Area = L×W = ${L}×${W} = ${L*W}.`
+      }));
+    } else if(t===1){
+      const s=randInt(2,10);
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Additional Topics)", difficulty:(i<6?"Easy":"Medium"),
+        question:`What is the volume of a cube with side length ${s}?`,
+        correctValue:s**3,
+        distractors:[s**2, 6*s**2, 3*s],
+        explanation:`Volume = s³ = ${s}³ = ${s**3}.`
+      }));
+    } else if(t===2){
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Additional Topics)", difficulty:(i<6?"Easy":"Medium"),
+        question:`Simplify: i^4`,
+        correctValue:"1",
+        distractors:["-1","i","-i"],
+        explanation:`i^2 = −1, so i^4 = (i^2)^2 = (−1)^2 = 1.`
+      }));
+    } else {
+      const angle=[30,45,60][randInt(0,2)];
+      const func=["sin","cos"][randInt(0,1)];
+      let correct;
+      if (func==="sin" && angle===30) correct="1/2";
+      if (func==="sin" && angle===45) correct="√2/2";
+      if (func==="sin" && angle===60) correct="√3/2";
+      if (func==="cos" && angle===30) correct="√3/2";
+      if (func==="cos" && angle===45) correct="√2/2";
+      if (func==="cos" && angle===60) correct="1/2";
+      const d=["0","1","√3/2","√2/2","1/2"].filter(v=>v!==correct);
+      shuffle(d);
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Additional Topics)", difficulty:(i<6?"Easy":"Medium"),
+        question:`What is ${func}(${angle}°)?`,
+        correctValue:correct,
+        distractors:d.slice(0,3),
+        explanation:`Special-angle value: ${func}(${angle}°) = ${correct}.`
+      }));
+    }
+  }
+
+  // Hard (~50)
+  // Hard Algebra/Advanced/PSDA/Additional mixed
+  for (let i=0;i<50;i++){
+    const group = i % 4;
+
+    if(group===0){
+      const a=randInt(2,6), h=randInt(-6,6), k=randInt(4,12);
+      if(k%a!==0){ i--; continue; }
+      const d=k/a, sol1=h+d, sol2=h-d;
+      out.push(makeMCQ({
+        domain:"Math", topic:"Algebra", difficulty:"Hard",
+        question:`Solve for x:\n|${a}(x ${h>=0? "-":"+"} ${Math.abs(h)})| = ${k}`,
+        correctValue:`x = ${sol1} or x = ${sol2}`,
+        distractors:[`x = ${h} ± ${k}`, `x = ${k} or x = ${-k}`, `x = ${h}`],
+        explanation:`|${a}(x−${h})|=${k} ⇒ ${a}|x−${h}|=${k} ⇒ |x−${h}|=${d} ⇒ x=${h}±${d}.`
+      }));
+    } else if(group===1){
+      const r1=randInt(3,8), r2=randInt(3,8);
+      if(r1===r2){ i--; continue; }
+      const simp=formatFrac(r1*r2, r1+r2);
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Problem Solving & Data Analysis)", difficulty:"Hard",
+        question:`Machine A can complete a job in ${r1} hours and Machine B can complete it in ${r2} hours.\nAt constant rates, how many hours will it take them working together?`,
+        correctValue:simp,
+        distractors:[String(r1+r2), formatFrac(r1+r2, r1*r2), String(Math.min(r1,r2))],
+        explanation:`Rates add: 1/T = 1/${r1} + 1/${r2} ⇒ T = ${r1*r2}/${r1+r2} = ${simp}.`
+      }));
+    } else if(group===2){
+      const p=randInt(1,6), q=randInt(1,6);
+      const val=p*p+q*q;
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Passport to Advanced Math)", difficulty:"Hard",
+        question:`Simplify:\n(${p} + ${q}i)(${p} - ${q}i)`,
+        correctValue:String(val),
+        distractors:[`${p*p} - ${q*q}`, `${val}i`, `${p*p + q*q}i`],
+        explanation:`(a+bi)(a−bi)=a^2+b^2 ⇒ ${p}^2+${q}^2=${val}.`
+      }));
+    } else {
+      const k=randInt(2,5), V=randInt(20,120), newV=V*(k**3);
+      out.push(makeMCQ({
+        domain:"Math", topic:"Math (Additional Topics)", difficulty:"Hard",
+        question:`A solid is scaled so each length is multiplied by ${k}. If the original volume is ${V}, what is the new volume?`,
+        correctValue:String(newV),
+        distractors:[String(V*k), String(V*k*k), String(V + k)],
+        explanation:`Volume scales by k^3 ⇒ ${V}·${k}^3 = ${newV}.`
+      }));
+    }
+  }
+
+  return out;
+}
+
+function buildRWBank(){
+  const out=[];
+  const diffs=["Easy","Medium","Hard"];
+  const names=["Maya","Jordan","Aiden","Leila","Noah","Priya","Elena","Marcus","Rina","Sam"];
+  const subjects=["urban planning","marine biology","renewable energy","behavioral economics","literary translation","public health","robotics","environmental policy","cognitive science","music theory"];
+  const verbs=["argues","suggests","claims","observes","notes","emphasizes","challenges","compares","questions","illustrates"];
+  const toneWords=["measured","skeptical","optimistic","cautious","analytical","reflective"];
+
+  function makePassage(kind){
+    const n1=names[randInt(0,names.length-1)];
+    const n2=names[randInt(0,names.length-1)];
+    const sub=subjects[randInt(0,subjects.length-1)];
+    const v=verbs[randInt(0,verbs.length-1)];
+    const tone=toneWords[randInt(0,toneWords.length-1)];
+    const year=randInt(2008,2023);
+
+    if(kind==="short"){
+      return `Passage:\nIn ${year}, ${n1} studied how small changes in ${sub} can produce larger long-term effects. Rather than focusing on dramatic breakthroughs, ${n1} ${v} that consistent, modest improvements often accumulate. The discussion remains ${tone}, acknowledging uncertainty while pointing to clear patterns in the available evidence.`;
+    }
+    if(kind==="paired"){
+      return `Passage 1:\n${n1} ${v} that public decisions should prioritize outcomes that can be measured reliably, even if those measures are imperfect.\n\nPassage 2:\n${n2} counters that some important outcomes resist measurement, and that overreliance on numbers can hide meaningful trade-offs.`;
+    }
+    const a=randInt(8,20), b=randInt(8,20), c=randInt(8,20);
+    const inc1=randInt(2,6), inc2=randInt(2,6), inc3=randInt(2,6);
+    return `Passage + Table:\nA school tested three study strategies over 3 weeks and recorded the average quiz score.\n\nWeek 1: Strategy A = ${a}, Strategy B = ${b}, Strategy C = ${c}\nWeek 2: Strategy A = ${a+inc1}, Strategy B = ${b+inc2}, Strategy C = ${c+inc3}\nWeek 3: Strategy A = ${a+2*inc1}, Strategy B = ${b+2*inc2}, Strategy C = ${c+2*inc3}`;
+  }
+
+  function add(t, difficulty){
+    if(t==="Information and Ideas Questions"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice best states the main idea of the passage?",
+        correctValue:"The author emphasizes gradual improvement and cautious interpretation of evidence.",
+        distractors:[
+          "The author argues that only sudden breakthroughs create meaningful change.",
+          "The author claims the evidence is too weak to support any conclusions.",
+          "The author focuses mainly on describing the researcher’s personal background."
+        ],
+        explanation:"The passage highlights accumulating small improvements and a careful, evidence-based tone."
+      }));
+    } else if(t==="Command of Evidence (Textual)"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which quotation from the passage best supports the idea that small changes can lead to big results over time?",
+        correctValue:"“consistent, modest improvements often accumulate.”",
+        distractors:[
+          "“In 2016, Maya studied how small changes…”",
+          "“The discussion remains measured…”",
+          "“Rather than focusing on dramatic breakthroughs…”"
+        ],
+        explanation:"That line directly states the accumulation of modest improvements over time."
+      }));
+    } else if(t==="Command of Evidence (Quantitative)"){
+      const passage=makePassage("quant");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which claim is best supported by the data in the table?",
+        correctValue:"Strategy B shows the greatest total increase from Week 1 to Week 3.",
+        distractors:[
+          "Strategy C has the highest score in Week 1.",
+          "All strategies increase by the same amount each week.",
+          "Strategy A decreases between Week 2 and Week 3."
+        ],
+        explanation:"This item is designed so Strategy B increases the most across the three weeks."
+      }));
+    } else if(t==="Central Ideas and Details"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice best describes the central idea of the passage?",
+        correctValue:"The passage’s central idea is that patterns can be identified even when uncertainty remains.",
+        distractors:[
+          "The passage’s central idea is that uncertainty makes analysis pointless.",
+          "The passage’s central idea is that evidence always leads to one definitive answer.",
+          "The passage’s central idea is that dramatic changes are more common than gradual ones."
+        ],
+        explanation:"The author balances uncertainty with the claim that evidence still reveals patterns."
+      }));
+    } else if(t==="Inferences"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice is most strongly supported by the passage?",
+        correctValue:"The author would likely support evaluating progress using multiple pieces of evidence over time.",
+        distractors:[
+          "The author would likely reject all measurement as misleading.",
+          "The author would likely insist that only personal opinions matter.",
+          "The author would likely prioritize dramatic results over consistent trends."
+        ],
+        explanation:"The passage supports cautious, pattern-based conclusions drawn from evidence over time."
+      }));
+    } else if(t==="Craft and Structure Questions"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"How does the passage’s structure contribute to its overall argument?",
+        correctValue:"It contrasts dramatic change with incremental progress to highlight the passage’s argument.",
+        distractors:[
+          "It provides definitions of technical terms without using them in context.",
+          "It introduces a counterargument and refutes it with statistics.",
+          "It shifts topics to describe an unrelated historical event."
+        ],
+        explanation:"The passage uses contrast to emphasize the importance of gradual improvement."
+      }));
+    } else if(t==="Words in Context"){
+      const n=names[randInt(0,names.length-1)];
+      const sub=subjects[randInt(0,subjects.length-1)];
+      const passage=
+`Passage:
+${n} described the early results as "tentative," noting that the sample was small and that additional data might change the conclusion. Still, the results offered a useful starting point for further work in ${sub}.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:'As used in the passage, "tentative" most nearly means',
+        correctValue:"uncertain",
+        distractors:["exhaustive","irrelevant","celebratory"],
+        explanation:"Because the sample is small and conclusions may change, “tentative” means uncertain."
+      }));
+    } else if(t==="Text Structure and Purpose"){
+      const passage=makePassage("short");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"The author’s primary purpose in the passage is",
+        correctValue:"to qualify a claim by acknowledging limits while still presenting a trend",
+        distractors:[
+          "to criticize the researcher for avoiding conclusions",
+          "to present a personal narrative unrelated to evidence",
+          "to list unrelated facts without making any claim"
+        ],
+        explanation:"The author acknowledges uncertainty but still points to patterns in evidence."
+      }));
+    } else if(t==="Cross-Text Connections"){
+      const passage=makePassage("paired");
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice best describes the relationship between Passage 1 and Passage 2?",
+        correctValue:"Both passages discuss how evidence should be used, but they differ on the limits of measurement.",
+        distractors:[
+          "Both passages argue that numbers are always meaningless.",
+          "Passage 1 rejects measurement, while Passage 2 supports it unconditionally.",
+          "Passage 2 focuses on a historical narrative unrelated to evidence."
+        ],
+        explanation:"Passage 1 favors measurable outcomes; Passage 2 warns about overreliance on numbers."
+      }));
+    } else if(t==="Expression of Ideas Questions"){
+      const n=names[randInt(0,names.length-1)];
+      const passage=
+`Sentence:
+${n} organized the report carefully, listing results first, the method second, and the question last.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which revision best improves the organization of ideas in the sentence?",
+        correctValue:"Reorder the items so the question appears first, followed by method, then results.",
+        distractors:[
+          "Replace “carefully” with “meticulously” to add more detail.",
+          "Delete “listing” to shorten the sentence.",
+          "Change the verb tense to future tense."
+        ],
+        explanation:"A logical order is question → method → results."
+      }));
+    } else if(t==="Transitions"){
+      const passage=
+`Sentence:
+The new schedule reduced late arrivals; ____ , it also shortened lunchtime by five minutes.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice best completes the sentence to show a contrast?",
+        correctValue:"however",
+        distractors:["therefore","for example","in addition"],
+        explanation:"The second clause introduces a drawback, so a contrast transition fits."
+      }));
+    } else if(t==="Rhetorical Synthesis"){
+      const n=names[randInt(0,names.length-1)];
+      const passage=
+`Notes:
+- The library will host a weekend workshop on note-taking strategies.
+- The workshop is free and open to students in grades 9–12.
+- Volunteers from the local university will lead short practice sessions.
+
+Draft:
+${n} is writing an announcement for the library website.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which choice best uses relevant information from the notes to accomplish the writer’s goal?",
+        correctValue:"To encourage attendance, add a sentence emphasizing that the workshop is free and includes guided practice.",
+        distractors:[
+          "Add a sentence describing the library’s founding year.",
+          "Add a sentence listing unrelated events at the library.",
+          "Add a sentence that criticizes students for poor habits."
+        ],
+        explanation:"The goal is an announcement; “free” + guided practice is directly relevant and persuasive."
+      }));
+    } else if(t==="Standard English Conventions Questions"){
+      const passage=
+`Sentence:
+Each of the students (A) bring (B) their notebook, (C) and a pencil. (D) No error.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which underlined portion contains an error in standard English conventions?",
+        correctValue:"A",
+        distractors:["B","C","D"],
+        explanation:"“Each” is singular, so it should be “brings,” not “bring.”"
+      }));
+    } else if(t==="Boundaries"){
+      const passage=
+`Sentence:
+The experiment ran overnight (A) the results were ready by morning. (B)`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which revision best fixes the boundary error in the sentence?",
+        correctValue:"Replace (A) with a semicolon.",
+        distractors:[
+          "Delete the comma after overnight.",
+          "Add a comma after results.",
+          "Replace 'were' with 'was'."
+        ],
+        explanation:"Two independent clauses need a semicolon, period, or conjunction—semicolon is a clean fix."
+      }));
+    } else { // Form, Structure, and Sense
+      const passage=
+`Draft paragraph:
+(1) The team tested three designs. (2) The second design used fewer materials. (3) It was heavier than the others, so it was easier to transport.`;
+      out.push(makeMCQ({
+        domain:"Reading/Writing", topic:t, difficulty, passage,
+        question:"Which change best improves the logic and clarity of the paragraph?",
+        correctValue:"Replace “heavier” with “lighter.”",
+        distractors:[
+          "Replace “tested” with “testing.”",
+          "Move sentence (2) to the end of the paragraph.",
+          "Replace “materials” with “resources.”"
+        ],
+        explanation:"Being heavier would not make it easier to transport; “lighter” fixes the meaning."
+      }));
+    }
+  }
+
+  // 7 per topic = 105 -> trim to 100
+  let idx=0;
+  for(const t of RW_TOPICS){
+    for(let k=0;k<7;k++){
+      add(t, diffs[idx%3]);
+      idx++;
+    }
+  }
+  while(out.length>100) out.pop();
+  return out;
+}
+
+function buildAllBanks(){
+  bank.length = 0;
+  bank.push(...buildMathBank());
+  bank.push(...buildRWBank());
+}
+
+// =========================================================
+// TEST ENGINE
+// =========================================================
+
+const LS_KEY = "sat_test_mode_state_v1";
+
+const startScreen = document.getElementById("startScreen");
+const testScreen = document.getElementById("testScreen");
+const reviewScreen = document.getElementById("reviewScreen");
+const resultsScreen = document.getElementById("resultsScreen");
+
+const domainSelect = document.getElementById("domainSelect");
+const timerSelect = document.getElementById("timerSelect");
+const lengthSelect = document.getElementById("lengthSelect");
+const startBtn = document.getElementById("startBtn");
+const resetAllBtn = document.getElementById("resetAllBtn");
+
+const pillDomain = document.getElementById("pillDomain");
+const pillModule = document.getElementById("pillModule");
+const pillProgress = document.getElementById("pillProgress");
+const pillFlag = document.getElementById("pillFlag");
+const pillTimer = document.getElementById("pillTimer");
+
+const passageEl = document.getElementById("passage");
+const questionTextEl = document.getElementById("questionText");
+const choicesEl = document.getElementById("choices");
+const resultEl = document.getElementById("result");
+
+const gridEl = document.getElementById("grid");
+
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const flagBtn = document.getElementById("flagBtn");
+const endBtn = document.getElementById("endBtn");
+const reviewBtn = document.getElementById("reviewBtn");
+
+const reviewPillSummary = document.getElementById("reviewPillSummary");
+const reviewPillTimer = document.getElementById("reviewPillTimer");
+const reviewList = document.getElementById("reviewList");
+const backToTestBtn = document.getElementById("backToTestBtn");
+const submitBtn = document.getElementById("submitBtn");
+
+const scorePill = document.getElementById("scorePill");
+const timePill = document.getElementById("timePill");
+const resultsList = document.getElementById("resultsList");
+const newTestBtn = document.getElementById("newTestBtn");
+
+let state = null;
+let timerInterval = null;
+
+// Realistic timings (seconds)
+const REAL_TIMING = {
+  "Reading/Writing": { modules: [32*60, 32*60], moduleQuestions: [27,27] },
+  "Math":            { modules: [35*60, 35*60], moduleQuestions: [22,22] }
+};
+
+// Create a new test session
+function createNewTest({domain, timerMode, lengthMode}){
+  const domainBank = bank.filter(q => q.domain === domain);
+
+  let modules = [];
+  let moduleTimes = [];
+  let totalQuestions = 0;
+
+  if(lengthMode === "real"){
+    const cfg = REAL_TIMING[domain];
+    moduleTimes = cfg.modules.slice();
+    modules = cfg.moduleQuestions.map(n => n);
+    totalQuestions = modules.reduce((a,b)=>a+b,0);
+  } else if(lengthMode === "mini10"){
+    modules = [10];
+    moduleTimes = [10*60]; // if timer on, 10 min default
+    totalQuestions = 10;
+  } else {
+    modules = [20];
+    moduleTimes = [20*60];
+    totalQuestions = 20;
+  }
+
+  // Sample questions randomly (with some variety across topic/difficulty)
+  // Strategy: shuffle bank and take N
+  const pool = domainBank.slice();
+  shuffle(pool);
+  const picked = pool.slice(0, totalQuestions);
+
+  // If bank is smaller than needed, wrap (shouldn't happen here)
+  while(picked.length < totalQuestions){
+    picked.push(pool[picked.length % pool.length]);
+  }
+
+  // Build per-module slices
+  let idx = 0;
+  const moduleSlices = modules.map(n => {
+    const slice = picked.slice(idx, idx+n);
+    idx += n;
+    return slice;
+  });
+
+  return {
+    version: 1,
+    createdAt: Date.now(),
+    domain,
+    timerMode,   // "on" | "off"
+    lengthMode,  // "real" | "mini10" | "mini20"
+    showExplanations: false, // only after submit
+    submitted: false,
+
+    moduleIndex: 0,
+    questionIndex: 0,
+
+    moduleTimes,        // seconds per module (used only if timerMode on)
+    moduleTimeLeft: moduleTimes[0] ?? 0,
+
+    modules: moduleSlices, // array of arrays of questions
+    answers: {},          // key: globalIndex -> "A/B/C/D"
+    flagged: {},          // key: globalIndex -> true
+    startedAt: Date.now(),
+    finishedAt: null
+  };
+}
+
+function globalIndex(moduleIndex, questionIndex){
+  let offset = 0;
+  for(let m=0;m<moduleIndex;m++) offset += state.modules[m].length;
+  return offset + questionIndex;
+}
+
+function totalQuestions(){
+  return state.modules.reduce((s,mod)=>s+mod.length,0);
+}
+
+function getCurrentQuestion(){
+  return state.modules[state.moduleIndex][state.questionIndex];
+}
+
+function saveState(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function loadState(){
+  const raw = localStorage.getItem(LS_KEY);
+  if(!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+function clearSaved(){
+  localStorage.removeItem(LS_KEY);
+}
+
+function show(screen){
+  startScreen.style.display = (screen==="start") ? "block" : "none";
+  testScreen.style.display = (screen==="test") ? "block" : "none";
+  reviewScreen.style.display = (screen==="review") ? "block" : "none";
+  resultsScreen.style.display = (screen==="results") ? "block" : "none";
+}
+
+function formatTime(sec){
+  sec = Math.max(0, Math.floor(sec));
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function countFlagged(){
+  return Object.values(state.flagged).filter(Boolean).length;
+}
+
+function countAnswered(){
+  return Object.keys(state.answers).length;
+}
+
+function renderTopbar(){
+  const g = globalIndex(state.moduleIndex, state.questionIndex);
+  pillDomain.textContent = `Domain: ${state.domain}`;
+  pillModule.textContent = `Module: ${state.moduleIndex + 1} / ${state.modules.length}`;
+  pillProgress.textContent = `Q ${g+1} / ${totalQuestions()}`;
+  pillFlag.textContent = `Flagged: ${countFlagged()}`;
+
+  if(state.timerMode === "on"){
+    pillTimer.textContent = `Time: ${formatTime(state.moduleTimeLeft)}`;
+  } else {
+    pillTimer.textContent = `Time: — (off)`;
+  }
+}
+
+function renderGrid(){
+  gridEl.innerHTML = "";
+  const total = totalQuestions();
+  for(let i=0;i<total;i++){
+    const chip = document.createElement("div");
+    chip.className = "qchip";
+    chip.textContent = String(i+1);
+
+    const answered = state.answers[i] != null;
+    const flagged = state.flagged[i] === true;
+
+    if(answered) chip.classList.add("answered");
+    if(flagged) chip.classList.add("flagged");
+
+    const cur = globalIndex(state.moduleIndex, state.questionIndex);
+    if(i === cur) chip.classList.add("current");
+
+    chip.onclick = ()=>jumpToGlobal(i);
+    gridEl.appendChild(chip);
+  }
+}
+
+function renderQuestion(){
+  const q = getCurrentQuestion();
+  const g = globalIndex(state.moduleIndex, state.questionIndex);
+
+  // passage
+  if(q.passage && q.passage.trim().length>0){
+    passageEl.style.display = "block";
+    passageEl.textContent = q.passage;
+  } else {
+    passageEl.style.display = "none";
+    passageEl.textContent = "";
+  }
+
+  // question
+  questionTextEl.textContent = q.question;
+
+  // choices
+  choicesEl.innerHTML = "";
+  q.choices.forEach(ch=>{
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "choiceBtn";
+    const picked = state.answers[g] === ch.key;
+    btn.textContent = `${ch.key}) ${ch.text}${picked ? "  ✓" : ""}`;
+
+    btn.onclick = ()=>{
+      if(state.submitted) return;
+      state.answers[g] = ch.key;
+      saveState();
+      renderAll();
+    };
+
+    choicesEl.appendChild(btn);
+  });
+
+  // result/explanations: only after submit
+  resultEl.style.display = "none";
+  resultEl.classList.remove("correct","incorrect");
+  resultEl.textContent = "";
+
+  if(state.submitted){
+    const correct = state.answers[g] === q.answer;
+    resultEl.style.display = "block";
+    resultEl.classList.add(correct ? "correct" : "incorrect");
+    const correctChoice = q.choices.find(c=>c.key===q.answer);
+    const correctText = correctChoice ? `${q.answer}) ${correctChoice.text}` : q.answer;
+    resultEl.textContent =
+      (correct ? "✅ Correct\n\n" : "❌ Incorrect\n\n") +
+      `Correct Answer: ${correctText}\n\nExplanation:\n${q.explanation}`;
+  }
+
+  // nav buttons
+  prevBtn.disabled = (state.moduleIndex === 0 && state.questionIndex === 0);
+  nextBtn.disabled = (state.moduleIndex === state.modules.length-1 &&
+                      state.questionIndex === state.modules[state.modules.length-1].length-1);
+
+  renderTopbar();
+  renderGrid();
+}
+
+function renderAll(){
+  renderTopbar();
+  renderGrid();
+  renderQuestion();
+}
+
+function jumpToGlobal(g){
+  // map global index to module/question index
+  let remain = g;
+  for(let m=0;m<state.modules.length;m++){
+    const len = state.modules[m].length;
+    if(remain < len){
+      state.moduleIndex = m;
+      state.questionIndex = remain;
+      if(state.timerMode==="on"){
+        // do NOT reset timer when jumping
+      }
+      saveState();
+      renderAll();
+      return;
+    }
+    remain -= len;
+  }
+}
+
+function goNext(){
+  const modLen = state.modules[state.moduleIndex].length;
+  if(state.questionIndex < modLen-1){
+    state.questionIndex += 1;
+  } else if(state.moduleIndex < state.modules.length-1){
+    // move to next module (and reset module timer)
+    state.moduleIndex += 1;
+    state.questionIndex = 0;
+    if(state.timerMode==="on"){
+      state.moduleTimeLeft = state.moduleTimes[state.moduleIndex] ?? 0;
+    }
+  }
+  saveState();
+  renderAll();
+}
+
+function goPrev(){
+  if(state.questionIndex > 0){
+    state.questionIndex -= 1;
+  } else if(state.moduleIndex > 0){
+    state.moduleIndex -= 1;
+    state.questionIndex = state.modules[state.moduleIndex].length - 1;
+    // keep timer as-is (we won't “rewind” time)
+  }
+  saveState();
+  renderAll();
+}
+
+function toggleFlag(){
+  const g = globalIndex(state.moduleIndex, state.questionIndex);
+  state.flagged[g] = !state.flagged[g];
+  saveState();
+  renderAll();
+}
+
+function startTimerIfNeeded(){
+  stopTimer();
+  if(state.timerMode !== "on" || state.submitted) return;
+
+  timerInterval = setInterval(()=>{
+    state.moduleTimeLeft -= 1;
+    if(state.moduleTimeLeft <= 0){
+      state.moduleTimeLeft = 0;
+      saveState();
+      renderTopbar();
+
+      // time up: auto-advance to next module or auto-submit
+      if(state.moduleIndex < state.modules.length-1){
+        state.moduleIndex += 1;
+        state.questionIndex = 0;
+        state.moduleTimeLeft = state.moduleTimes[state.moduleIndex] ?? 0;
+        saveState();
+        renderAll();
+      } else {
+        // last module time up => submit
+        submitTest(true);
+      }
+    } else {
+      saveState();
+      renderTopbar();
+    }
+  }, 1000);
+}
+
+function stopTimer(){
+  if(timerInterval){
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function openReview(){
+  stopTimer();
+  show("review");
+
+  const total = totalQuestions();
+  const answered = countAnswered();
+  const flagged = countFlagged();
+  reviewPillSummary.textContent = `Answered: ${answered}/${total}   •   Flagged: ${flagged}`;
+  reviewPillTimer.textContent = (state.timerMode==="on")
+    ? `Timer: ON (current module time left ${formatTime(state.moduleTimeLeft)})`
+    : `Timer: OFF`;
+
+  reviewList.innerHTML = "";
+  for(let g=0; g<total; g++){
+    const q = getQuestionByGlobal(g);
+    const ans = state.answers[g] ?? "—";
+    const isFlag = state.flagged[g] === true;
+
+    const item = document.createElement("div");
+    item.className = "reviewItem";
+    item.innerHTML = `
+      <strong>Q${g+1}</strong> ${isFlag ? '<span class="pill" style="margin-left:8px;">Flagged</span>' : ""}
+      <div class="mini">Your answer: <strong>${ans}</strong></div>
+      <div class="mini">Topic: ${q.topic} • Difficulty: ${q.difficulty}</div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" data-g="${g}">Go to Q${g+1}</button>
+      </div>
+    `;
+    item.querySelector("button").onclick = ()=>{
+      show("test");
+      jumpToGlobal(g);
+      startTimerIfNeeded();
+    };
+    reviewList.appendChild(item);
+  }
+}
+
+function getQuestionByGlobal(g){
+  let remain = g;
+  for(let m=0;m<state.modules.length;m++){
+    const len = state.modules[m].length;
+    if(remain < len) return state.modules[m][remain];
+    remain -= len;
+  }
+  return null;
+}
+
+function submitTest(auto=false){
+  state.submitted = true;
+  state.finishedAt = Date.now();
+  saveState();
+  stopTimer();
+
+  // score
+  const total = totalQuestions();
+  let correct = 0;
+  for(let g=0; g<total; g++){
+    const q = getQuestionByGlobal(g);
+    if(state.answers[g] && state.answers[g] === q.answer) correct++;
+  }
+
+  // show results
+  show("results");
+  scorePill.textContent = `Raw Score: ${correct} / ${total}`;
+  const elapsed = Math.floor((state.finishedAt - state.startedAt) / 1000);
+  timePill.textContent = (state.timerMode==="on")
+    ? `Timer mode: ON • Elapsed: ${formatTime(elapsed)}`
+    : `Timer mode: OFF • Elapsed: ${formatTime(elapsed)}`;
+
+  resultsList.innerHTML = "";
+  for(let g=0; g<total; g++){
+    const q = getQuestionByGlobal(g);
+    const ans = state.answers[g] ?? "—";
+    const ok = ans === q.answer;
+
+    const correctChoice = q.choices.find(c=>c.key===q.answer);
+    const correctText = correctChoice ? `${q.answer}) ${correctChoice.text}` : q.answer;
+
+    const item = document.createElement("div");
+    item.className = "reviewItem";
+    item.innerHTML = `
+      <strong>Q${g+1} — ${ok ? "✅ Correct" : "❌ Incorrect"}</strong>
+      <div class="mini">Topic: ${q.topic} • Difficulty: ${q.difficulty}</div>
+      ${q.passage ? `<div class="mini" style="white-space:pre-wrap;margin-top:8px;border:1px solid #eee;border-radius:10px;padding:10px;background:#fafafa;">${escapeHtml(q.passage)}</div>` : ""}
+      <div style="white-space:pre-wrap;margin-top:8px;">${escapeHtml(q.question)}</div>
+      <div class="mini" style="margin-top:8px;">Your answer: <strong>${ans}</strong></div>
+      <div class="mini">Correct answer: <strong>${escapeHtml(correctText)}</strong></div>
+      <div class="mini" style="white-space:pre-wrap;margin-top:8px;">Explanation:\n${escapeHtml(q.explanation)}</div>
+    `;
+    resultsList.appendChild(item);
+  }
+
+  if(auto){
+    const note = document.createElement("div");
+    note.className = "card";
+    note.style.marginTop = "12px";
+    note.textContent = "Time expired — your test was submitted automatically.";
+    resultsList.prepend(note);
+  }
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+// =========================================================
+// UI EVENTS
+// =========================================================
+
+prevBtn.addEventListener("click", goPrev);
+nextBtn.addEventListener("click", goNext);
+flagBtn.addEventListener("click", toggleFlag);
+reviewBtn.addEventListener("click", openReview);
+
+endBtn.addEventListener("click", ()=>{
+  openReview();
+});
+
+backToTestBtn.addEventListener("click", ()=>{
+  show("test");
+  renderAll();
+  startTimerIfNeeded();
+});
+
+submitBtn.addEventListener("click", ()=>{
+  submitTest(false);
+});
+
+newTestBtn.addEventListener("click", ()=>{
+  clearSaved();
+  state = null;
+  show("start");
+});
+
+resetAllBtn.addEventListener("click", ()=>{
+  clearSaved();
+  state = null;
+  alert("Saved test cleared.");
+});
+
+// Start button
+startBtn.addEventListener("click", ()=>{
+  state = createNewTest({
+    domain: domainSelect.value,
+    timerMode: timerSelect.value,
+    lengthMode: lengthSelect.value
+  });
+  saveState();
+  show("test");
+  renderAll();
+  startTimerIfNeeded();
+});
+
+// =========================================================
+// INIT
+// =========================================================
+buildAllBanks();
+
+// Populate domain select
+domainSelect.innerHTML = "";
+DOMAINS.forEach(d=>{
+  const opt = document.createElement("option");
+  opt.value = d;
+  opt.textContent = d;
+  domainSelect.appendChild(opt);
+});
+domainSelect.value = "Reading/Writing";
+
+// Attempt load
+const loaded = loadState();
+if(loaded && loaded.modules && loaded.domain){
+  state = loaded;
+  // If submitted, show results directly
+  if(state.submitted){
+    submitTest(false); // re-render results
+  } else {
+    show("test");
+    renderAll();
+    startTimerIfNeeded();
+  }
+} else {
+  show("start");
+}
+</script>
+</body>
+</html>
